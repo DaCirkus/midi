@@ -1,10 +1,8 @@
-'use client';
-
 import '@mantine/core/styles.css';
 import '@mantine/dropzone/styles.css';
-import { MantineProvider } from '@mantine/core';
-import { Inter } from 'next/font/google';
 import './globals.css';
+import { Inter } from 'next/font/google';
+import { ClientLayout } from '@/components/ClientLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,9 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <MantineProvider>
-          {children}
-        </MantineProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
