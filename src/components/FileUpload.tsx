@@ -20,79 +20,70 @@ export function FileUpload() {
   const [midiFiles, setMidiFiles] = useState<{ name: string, url: string }[]>([]);
 
   const processAudio = async (audioBuffer: AudioBuffer) => {
-    // Create audio context and source
     const audioContext = new AudioContext();
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
     
-    // Create analyzer node
     const analyzerNode = audioContext.createAnalyser();
     analyzerNode.fftSize = 2048;
     source.connect(analyzerNode);
     analyzerNode.connect(audioContext.destination);
 
-    // Initialize Meyda
-    const meydaAnalyzer = Meyda.createMeydaAnalyzer({
-      audioContext: audioContext,
-      source: source,
-      bufferSize: 512,
-      featureExtractors: ['rms', 'energy'],
-    });
-
-    // Create MIDI tracks
     const drumMidi = new Midi();
     const drumTrack = drumMidi.addTrack();
     const bassMidi = new Midi();
     const bassTrack = bassMidi.addTrack();
 
     let currentTime = 0;
-    const timeIncrement = 512 / audioContext.sampleRate; // Time per buffer
-
-    // Analyze audio
-    meydaAnalyzer.start();
-    source.start(0);
+    const timeIncrement = 512 / audioContext.sampleRate;
+    const features: number[] = [];
 
     return new Promise<{ name: string, url: string }[]>((resolve) => {
-      let features: number[] = [];
-      
-      (meydaAnalyzer as any).on('features', (feature: MeydaFeatures) => {
-        if (feature.rms > 0.1) { // Drum hit threshold
-          drumTrack.addNote({
-            midi: 36, // Bass drum
-            time: currentTime,
-            duration: 0.1,
-            velocity: Math.min(feature.rms * 127, 127)
-          });
-        }
+      const analyzer = Meyda.createMeydaAnalyzer({
+        audioContext: audioContext,
+        source: source,
+        bufferSize: 512,
+        featureExtractors: ['rms', 'energy'],
+        callback: (feature: MeydaFeatures) => {
+          if (feature.rms > 0.1) {
+            drumTrack.addNote({
+              midi: 36,
+              time: currentTime,
+              duration: 0.1,
+              velocity: Math.min(feature.rms * 127, 127)
+            });
+          }
 
-        if (feature.energy > 0.2) { // Bass note threshold
-          bassTrack.addNote({
-            midi: 48, // Bass note
-            time: currentTime,
-            duration: 0.2,
-            velocity: Math.min(feature.energy * 100, 127)
-          });
-        }
+          if (feature.energy > 0.2) {
+            bassTrack.addNote({
+              midi: 48,
+              time: currentTime,
+              duration: 0.2,
+              velocity: Math.min(feature.energy * 100, 127)
+            });
+          }
 
-        currentTime += timeIncrement;
-        features.push(feature.rms);
+          currentTime += timeIncrement;
+          features.push(feature.rms);
 
-        // Stop after processing the entire file
-        if (currentTime >= audioBuffer.duration) {
-          meydaAnalyzer.stop();
-          source.stop();
-          audioContext.close();
+          if (currentTime >= audioBuffer.duration) {
+            analyzer.stop();
+            source.stop();
+            audioContext.close();
 
-          // Create downloadable files
-          const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
-          const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
+            const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
+            const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
 
-          resolve([
-            { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
-            { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
-          ]);
+            resolve([
+              { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
+              { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
+            ]);
+          }
         }
       });
+
+      analyzer.start();
+      source.start(0);
     });
   };
 
