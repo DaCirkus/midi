@@ -10,7 +10,15 @@ import Meyda from 'meyda';
 interface MeydaFeatures {
   rms: number;
   energy: number;
+  spectralCentroid: number;
 }
+
+const DIRECTIONS = {
+  UP: 38,    // Up arrow
+  DOWN: 40,  // Down arrow
+  LEFT: 37,  // Left arrow
+  RIGHT: 39  // Right arrow
+};
 
 export function FileUpload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -27,20 +35,21 @@ export function FileUpload() {
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
       
-      const analyzerNode = audioContext.createAnalyser();
-      analyzerNode.fftSize = 2048;
-      source.connect(analyzerNode);
-      analyzerNode.connect(audioContext.destination);
+      // Create a silent destination
+      const silentNode = audioContext.createGain();
+      silentNode.gain.value = 0;
+      source.connect(silentNode);
+      silentNode.connect(audioContext.destination);
 
       setStatus('Initializing MIDI tracks...');
-      const drumMidi = new Midi();
-      const drumTrack = drumMidi.addTrack();
-      const bassMidi = new Midi();
-      const bassTrack = bassMidi.addTrack();
-
+      const midi = new Midi();
+      const gameTrack = midi.addTrack();
+      
       let currentTime = 0;
       const timeIncrement = 512 / audioContext.sampleRate;
-      const features: number[] = [];
+      const minTimeBetweenNotes = 0.3; // Minimum 300ms between notes
+      let lastNoteTime = -minTimeBetweenNotes;
+      let features: { time: number, rms: number, energy: number, centroid: number }[] = [];
 
       return new Promise<{ name: string, url: string }[]>((resolve, reject) => {
         try {
@@ -49,46 +58,67 @@ export function FileUpload() {
             audioContext: audioContext,
             source: source,
             bufferSize: 512,
-            featureExtractors: ['rms', 'energy'],
+            featureExtractors: ['rms', 'energy', 'spectralCentroid'],
             callback: (feature: MeydaFeatures) => {
               try {
-                if (feature.rms > 0.1) {
-                  drumTrack.addNote({
-                    midi: 36,
-                    time: currentTime,
-                    duration: 0.1,
-                    velocity: Math.min(feature.rms * 127, 127)
-                  });
-                }
-
-                if (feature.energy > 0.2) {
-                  bassTrack.addNote({
-                    midi: 48,
-                    time: currentTime,
-                    duration: 0.2,
-                    velocity: Math.min(feature.energy * 100, 127)
-                  });
-                }
-
                 currentTime += timeIncrement;
-                features.push(feature.rms);
+                
+                // Collect features for analysis
+                if (feature.rms > 0.1) { // Only store significant moments
+                  features.push({
+                    time: currentTime,
+                    rms: feature.rms,
+                    energy: feature.energy,
+                    centroid: feature.spectralCentroid
+                  });
+                }
 
-                // Update progress based on current time
+                // Update progress
                 const progressPercent = (currentTime / audioBuffer.duration) * 50 + 50;
                 setProgress(Math.min(progressPercent, 99));
 
                 if (currentTime >= audioBuffer.duration) {
-                  setStatus('Finalizing MIDI files...');
+                  setStatus('Generating gameplay notes...');
                   analyzer.stop();
                   source.stop();
                   audioContext.close();
 
-                  const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
-                  const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
+                  // Process collected features to generate notes
+                  features = features.filter((f, i, arr) => {
+                    // Keep only local maxima for energy
+                    if (i === 0 || i === arr.length - 1) return true;
+                    return f.energy > arr[i - 1].energy && f.energy > arr[i + 1].energy;
+                  });
 
+                  // Generate notes based on features
+                  features.forEach((f) => {
+                    if (f.time - lastNoteTime >= minTimeBetweenNotes) {
+                      // Determine note direction based on features
+                      let direction;
+                      const intensity = f.rms * f.energy;
+                      
+                      if (intensity > 0.5) {
+                        // Strong hits go UP/DOWN
+                        direction = f.centroid > 5000 ? DIRECTIONS.UP : DIRECTIONS.DOWN;
+                      } else {
+                        // Weaker hits go LEFT/RIGHT
+                        direction = f.centroid > 3000 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT;
+                      }
+
+                      gameTrack.addNote({
+                        midi: direction,
+                        time: f.time,
+                        duration: 0.1,
+                        velocity: Math.min(intensity * 127, 127)
+                      });
+
+                      lastNoteTime = f.time;
+                    }
+                  });
+
+                  const midiBlob = new Blob([midi.toArray()], { type: 'audio/midi' });
                   resolve([
-                    { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
-                    { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
+                    { name: 'gameplay.mid', url: URL.createObjectURL(midiBlob) }
                   ]);
                 }
               } catch (err) {
@@ -98,7 +128,7 @@ export function FileUpload() {
             }
           });
 
-          setStatus('Starting audio processing...');
+          setStatus('Starting audio analysis...');
           analyzer.start();
           source.start(0);
         } catch (err) {
