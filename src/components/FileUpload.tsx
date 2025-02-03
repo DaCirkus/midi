@@ -18,73 +18,98 @@ export function FileUpload() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [midiFiles, setMidiFiles] = useState<{ name: string, url: string }[]>([]);
+  const [status, setStatus] = useState<string>('');
 
   const processAudio = async (audioBuffer: AudioBuffer) => {
-    const audioContext = new AudioContext();
-    const source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    
-    const analyzerNode = audioContext.createAnalyser();
-    analyzerNode.fftSize = 2048;
-    source.connect(analyzerNode);
-    analyzerNode.connect(audioContext.destination);
+    try {
+      setStatus('Creating audio context...');
+      const audioContext = new AudioContext();
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      
+      const analyzerNode = audioContext.createAnalyser();
+      analyzerNode.fftSize = 2048;
+      source.connect(analyzerNode);
+      analyzerNode.connect(audioContext.destination);
 
-    const drumMidi = new Midi();
-    const drumTrack = drumMidi.addTrack();
-    const bassMidi = new Midi();
-    const bassTrack = bassMidi.addTrack();
+      setStatus('Initializing MIDI tracks...');
+      const drumMidi = new Midi();
+      const drumTrack = drumMidi.addTrack();
+      const bassMidi = new Midi();
+      const bassTrack = bassMidi.addTrack();
 
-    let currentTime = 0;
-    const timeIncrement = 512 / audioContext.sampleRate;
-    const features: number[] = [];
+      let currentTime = 0;
+      const timeIncrement = 512 / audioContext.sampleRate;
+      const features: number[] = [];
 
-    return new Promise<{ name: string, url: string }[]>((resolve) => {
-      const analyzer = Meyda.createMeydaAnalyzer({
-        audioContext: audioContext,
-        source: source,
-        bufferSize: 512,
-        featureExtractors: ['rms', 'energy'],
-        callback: (feature: MeydaFeatures) => {
-          if (feature.rms > 0.1) {
-            drumTrack.addNote({
-              midi: 36,
-              time: currentTime,
-              duration: 0.1,
-              velocity: Math.min(feature.rms * 127, 127)
-            });
-          }
+      return new Promise<{ name: string, url: string }[]>((resolve, reject) => {
+        try {
+          setStatus('Setting up audio analyzer...');
+          const analyzer = Meyda.createMeydaAnalyzer({
+            audioContext: audioContext,
+            source: source,
+            bufferSize: 512,
+            featureExtractors: ['rms', 'energy'],
+            callback: (feature: MeydaFeatures) => {
+              try {
+                if (feature.rms > 0.1) {
+                  drumTrack.addNote({
+                    midi: 36,
+                    time: currentTime,
+                    duration: 0.1,
+                    velocity: Math.min(feature.rms * 127, 127)
+                  });
+                }
 
-          if (feature.energy > 0.2) {
-            bassTrack.addNote({
-              midi: 48,
-              time: currentTime,
-              duration: 0.2,
-              velocity: Math.min(feature.energy * 100, 127)
-            });
-          }
+                if (feature.energy > 0.2) {
+                  bassTrack.addNote({
+                    midi: 48,
+                    time: currentTime,
+                    duration: 0.2,
+                    velocity: Math.min(feature.energy * 100, 127)
+                  });
+                }
 
-          currentTime += timeIncrement;
-          features.push(feature.rms);
+                currentTime += timeIncrement;
+                features.push(feature.rms);
 
-          if (currentTime >= audioBuffer.duration) {
-            analyzer.stop();
-            source.stop();
-            audioContext.close();
+                // Update progress based on current time
+                const progressPercent = (currentTime / audioBuffer.duration) * 50 + 50;
+                setProgress(Math.min(progressPercent, 99));
 
-            const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
-            const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
+                if (currentTime >= audioBuffer.duration) {
+                  setStatus('Finalizing MIDI files...');
+                  analyzer.stop();
+                  source.stop();
+                  audioContext.close();
 
-            resolve([
-              { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
-              { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
-            ]);
-          }
+                  const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
+                  const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
+
+                  resolve([
+                    { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
+                    { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
+                  ]);
+                }
+              } catch (err) {
+                console.error('Error in analyzer callback:', err);
+                reject(err);
+              }
+            }
+          });
+
+          setStatus('Starting audio processing...');
+          analyzer.start();
+          source.start(0);
+        } catch (err) {
+          console.error('Error setting up analyzer:', err);
+          reject(err);
         }
       });
-
-      analyzer.start();
-      source.start(0);
-    });
+    } catch (err) {
+      console.error('Error in processAudio:', err);
+      throw err;
+    }
   };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -93,18 +118,26 @@ export function FileUpload() {
     setIsProcessing(true);
     setProgress(0);
     setMidiFiles([]);
+    setStatus('Reading file...');
 
     try {
       const file = acceptedFiles[0];
       const arrayBuffer = await file.arrayBuffer();
+      setStatus('Decoding audio...');
+      setProgress(25);
+      
       const audioContext = new AudioContext();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
+      
       setProgress(50);
+      setStatus('Processing audio...');
+      
       const midiFiles = await processAudio(audioBuffer);
       setMidiFiles(midiFiles);
       setProgress(100);
+      setStatus('Complete!');
     } catch (err) {
+      console.error('Error processing file:', err);
       setError(err instanceof Error ? err.message : 'Processing failed');
     } finally {
       setIsProcessing(false);
@@ -141,7 +174,7 @@ export function FileUpload() {
 
           <div>
             <Text size="xl" inline>
-              {isProcessing ? 'Processing...' : 'Drag MP3 files here or click to select'}
+              {isProcessing ? status : 'Drag MP3 files here or click to select'}
             </Text>
             <Text size="sm" c="dimmed" inline mt={7}>
               Files should not exceed 30MB
@@ -156,13 +189,20 @@ export function FileUpload() {
       </Dropzone>
 
       {isProcessing && (
-        <Progress
-          value={progress}
-          size="xl"
-          radius="xl"
-          animated
-          striped
-        />
+        <>
+          <Stack gap="xs">
+            <Progress
+              value={progress}
+              size="xl"
+              radius="xl"
+              animated
+              striped
+            />
+            <Text size="sm" c="dimmed" ta="center">
+              {Math.round(progress)}% - {status}
+            </Text>
+          </Stack>
+        </>
       )}
 
       {error && (
