@@ -11,6 +11,7 @@ interface MeydaFeatures {
   rms: number;
   energy: number;
   spectralCentroid: number;
+  zcr: number;  // Zero crossing rate for better beat detection
 }
 
 const DIRECTIONS = {
@@ -47,10 +48,14 @@ export function FileUpload() {
       
       let currentTime = 0;
       const timeIncrement = 512 / audioContext.sampleRate;
-      const minTimeBetweenNotes = 0.3; // Minimum 300ms between notes
+      const minTimeBetweenNotes = 0.4; // Increased to 400ms for better playability
       let lastNoteTime = -minTimeBetweenNotes;
-      let features: { time: number, rms: number, energy: number, centroid: number }[] = [];
+      let features: { time: number, rms: number, energy: number, centroid: number, zcr: number }[] = [];
 
+      // Rolling average for adaptive thresholds
+      let energyHistory: number[] = [];
+      const HISTORY_SIZE = 50;
+      
       return new Promise<{ name: string, url: string }[]>((resolve, reject) => {
         try {
           setStatus('Setting up audio analyzer...');
@@ -58,18 +63,29 @@ export function FileUpload() {
             audioContext: audioContext,
             source: source,
             bufferSize: 512,
-            featureExtractors: ['rms', 'energy', 'spectralCentroid'],
+            featureExtractors: ['rms', 'energy', 'spectralCentroid', 'zcr'],
             callback: (feature: MeydaFeatures) => {
               try {
                 currentTime += timeIncrement;
                 
-                // Collect features for analysis
-                if (feature.rms > 0.1) { // Only store significant moments
+                // Update energy history for adaptive threshold
+                energyHistory.push(feature.energy);
+                if (energyHistory.length > HISTORY_SIZE) {
+                  energyHistory.shift();
+                }
+                
+                // Calculate adaptive threshold
+                const avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+                const energyThreshold = avgEnergy * 1.5; // 50% above average
+
+                // Only store significant moments that exceed the adaptive threshold
+                if (feature.energy > energyThreshold && feature.rms > 0.15) {
                   features.push({
                     time: currentTime,
                     rms: feature.rms,
                     energy: feature.energy,
-                    centroid: feature.spectralCentroid
+                    centroid: feature.spectralCentroid,
+                    zcr: feature.zcr
                   });
                 }
 
@@ -85,24 +101,30 @@ export function FileUpload() {
 
                   // Process collected features to generate notes
                   features = features.filter((f, i, arr) => {
-                    // Keep only local maxima for energy
-                    if (i === 0 || i === arr.length - 1) return true;
-                    return f.energy > arr[i - 1].energy && f.energy > arr[i + 1].energy;
+                    // Keep only stronger local maxima
+                    if (i === 0 || i === arr.length - 1) return false;
+                    const prevEnergy = arr[i - 1].energy;
+                    const nextEnergy = arr[i + 1].energy;
+                    return f.energy > prevEnergy * 1.2 && f.energy > nextEnergy * 1.2;
                   });
+
+                  // Sort by energy to get distribution of intensities
+                  const sortedEnergies = features.map(f => f.energy).sort((a, b) => b - a);
+                  const energyPercentile75 = sortedEnergies[Math.floor(sortedEnergies.length * 0.75)];
 
                   // Generate notes based on features
                   features.forEach((f) => {
                     if (f.time - lastNoteTime >= minTimeBetweenNotes) {
-                      // Determine note direction based on features
                       let direction;
                       const intensity = f.rms * f.energy;
                       
-                      if (intensity > 0.5) {
-                        // Strong hits go UP/DOWN
-                        direction = f.centroid > 5000 ? DIRECTIONS.UP : DIRECTIONS.DOWN;
+                      // Use energy percentile for more balanced distribution
+                      if (f.energy > energyPercentile75) {
+                        // Top 25% strongest hits go UP/DOWN
+                        direction = f.centroid > 4000 ? DIRECTIONS.UP : DIRECTIONS.DOWN;
                       } else {
                         // Weaker hits go LEFT/RIGHT
-                        direction = f.centroid > 3000 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT;
+                        direction = f.zcr > 50 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT;
                       }
 
                       gameTrack.addNote({
