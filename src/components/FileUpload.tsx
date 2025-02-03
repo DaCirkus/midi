@@ -1,71 +1,84 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Group, Text, rem, Progress, Alert } from '@mantine/core';
+import { Group, Text, rem, Progress, Alert, Button, Stack } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
-import { IconUpload, IconX, IconMusic, IconAlertCircle } from '@tabler/icons-react';
+import { IconUpload, IconX, IconMusic, IconAlertCircle, IconDownload } from '@tabler/icons-react';
+import { EssentiaWASM } from 'essentia.js';
+import { Midi } from '@tonejs/midi';
 
 export function FileUpload() {
   const [files, setFiles] = useState<File[]>([]);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [midiFiles, setMidiFiles] = useState<{ name: string, url: string }[]>([]);
+
+  const processAudio = async (audioBuffer: AudioBuffer) => {
+    const essentia = await EssentiaWASM.init();
+    const audioData = audioBuffer.getChannelData(0);
+    
+    // Extract drum hits using RMS energy and onset detection
+    const rms = essentia.RMS(audioData);
+    const onsets = essentia.OnsetDetection(audioData, audioBuffer.sampleRate);
+    
+    // Create MIDI file for drums
+    const drumMidi = new Midi();
+    const drumTrack = drumMidi.addTrack();
+    
+    // Convert onsets to MIDI notes
+    onsets.forEach((onset, i) => {
+      if (rms[i] > 0.1) { // Energy threshold
+        drumTrack.addNote({
+          midi: 36, // Bass drum
+          time: onset,
+          duration: 0.1,
+          velocity: Math.min(rms[i] * 127, 127)
+        });
+      }
+    });
+
+    // Create URLs for download
+    const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
+    const drumUrl = URL.createObjectURL(drumBlob);
+
+    return [
+      { name: 'drums.mid', url: drumUrl },
+      // We'll add more tracks later
+    ];
+  };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     setFiles(acceptedFiles);
     setError(null);
-    setIsUploading(true);
-    setUploadProgress(0);
+    setIsProcessing(true);
+    setProgress(0);
+    setMidiFiles([]);
 
     try {
-      // Get presigned URL
-      const res = await fetch('/api/upload-url');
-      const { url, fields } = await res.json();
+      const file = acceptedFiles[0];
+      const arrayBuffer = await file.arrayBuffer();
+      const audioContext = new AudioContext();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-      // Create form data with presigned fields
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      formData.append('file', acceptedFiles[0]);
-
-      // Upload to S3
-      const uploadRes = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed');
-      }
-
-      // Start processing
-      const processRes = await fetch('/api/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: acceptedFiles[0].name,
-        }),
-      });
-
-      const data = await processRes.json();
-      setUploadProgress(100);
+      setProgress(50);
+      const midiFiles = await processAudio(audioBuffer);
+      setMidiFiles(midiFiles);
+      setProgress(100);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : 'Processing failed');
     } finally {
-      setIsUploading(false);
+      setIsProcessing(false);
     }
   }, []);
 
   return (
-    <>
+    <Stack>
       <Dropzone
         onDrop={handleDrop}
         accept={['audio/mpeg']}
         maxSize={30 * 1024 * 1024}
-        disabled={isUploading}
+        disabled={isProcessing}
       >
         <Group justify="center" gap="xl" mih={220} style={{ pointerEvents: 'none' }}>
           <Dropzone.Accept>
@@ -89,7 +102,7 @@ export function FileUpload() {
 
           <div>
             <Text size="xl" inline>
-              {isUploading ? 'Uploading...' : 'Drag MP3 files here or click to select'}
+              {isProcessing ? 'Processing...' : 'Drag MP3 files here or click to select'}
             </Text>
             <Text size="sm" c="dimmed" inline mt={7}>
               Files should not exceed 30MB
@@ -103,22 +116,38 @@ export function FileUpload() {
         </Group>
       </Dropzone>
 
-      {isUploading && (
+      {isProcessing && (
         <Progress
-          value={uploadProgress}
+          value={progress}
           size="xl"
           radius="xl"
-          mt="md"
           animated
           striped
         />
       )}
 
       {error && (
-        <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mt="md">
+        <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">
           {error}
         </Alert>
       )}
-    </>
+
+      {midiFiles.length > 0 && (
+        <Stack gap="sm">
+          <Text size="lg" fw={500}>Download MIDI Files:</Text>
+          {midiFiles.map((file) => (
+            <Button
+              key={file.name}
+              component="a"
+              href={file.url}
+              download={file.name}
+              leftSection={<IconDownload size={16} />}
+            >
+              Download {file.name}
+            </Button>
+          ))}
+        </Stack>
+      )}
+    </Stack>
   );
 } 
