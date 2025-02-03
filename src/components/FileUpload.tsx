@@ -53,7 +53,7 @@ export function FileUpload() {
       let features: { time: number, rms: number, energy: number, centroid: number, zcr: number }[] = [];
 
       // Rolling average for adaptive thresholds
-      let energyHistory: number[] = [];
+      const energyHistory: number[] = [];
       const HISTORY_SIZE = 50;
       
       return new Promise<{ name: string, url: string }[]>((resolve, reject) => {
