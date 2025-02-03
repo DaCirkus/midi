@@ -4,8 +4,13 @@ import { useCallback, useState } from 'react';
 import { Group, Text, rem, Progress, Alert, Button, Stack } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { IconUpload, IconX, IconMusic, IconAlertCircle, IconDownload } from '@tabler/icons-react';
-import { EssentiaWASM } from 'essentia.js';
 import { Midi } from '@tonejs/midi';
+import Meyda from 'meyda';
+
+interface MeydaFeatures {
+  rms: number;
+  energy: number;
+}
 
 export function FileUpload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -15,37 +20,80 @@ export function FileUpload() {
   const [midiFiles, setMidiFiles] = useState<{ name: string, url: string }[]>([]);
 
   const processAudio = async (audioBuffer: AudioBuffer) => {
-    const essentia = await EssentiaWASM.init();
-    const audioData = audioBuffer.getChannelData(0);
+    // Create audio context and source
+    const audioContext = new AudioContext();
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
     
-    // Extract drum hits using RMS energy and onset detection
-    const rms = essentia.RMS(audioData);
-    const onsets = essentia.OnsetDetection(audioData, audioBuffer.sampleRate);
-    
-    // Create MIDI file for drums
-    const drumMidi = new Midi();
-    const drumTrack = drumMidi.addTrack();
-    
-    // Convert onsets to MIDI notes
-    onsets.forEach((onset, i) => {
-      if (rms[i] > 0.1) { // Energy threshold
-        drumTrack.addNote({
-          midi: 36, // Bass drum
-          time: onset,
-          duration: 0.1,
-          velocity: Math.min(rms[i] * 127, 127)
-        });
-      }
+    // Create analyzer node
+    const analyzerNode = audioContext.createAnalyser();
+    analyzerNode.fftSize = 2048;
+    source.connect(analyzerNode);
+    analyzerNode.connect(audioContext.destination);
+
+    // Initialize Meyda
+    const meydaAnalyzer = Meyda.createMeydaAnalyzer({
+      audioContext: audioContext,
+      source: source,
+      bufferSize: 512,
+      featureExtractors: ['rms', 'energy'],
     });
 
-    // Create URLs for download
-    const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
-    const drumUrl = URL.createObjectURL(drumBlob);
+    // Create MIDI tracks
+    const drumMidi = new Midi();
+    const drumTrack = drumMidi.addTrack();
+    const bassMidi = new Midi();
+    const bassTrack = bassMidi.addTrack();
 
-    return [
-      { name: 'drums.mid', url: drumUrl },
-      // We'll add more tracks later
-    ];
+    let currentTime = 0;
+    const timeIncrement = 512 / audioContext.sampleRate; // Time per buffer
+
+    // Analyze audio
+    meydaAnalyzer.start();
+    source.start(0);
+
+    return new Promise<{ name: string, url: string }[]>((resolve) => {
+      let features: number[] = [];
+      
+      (meydaAnalyzer as any).on('features', (feature: MeydaFeatures) => {
+        if (feature.rms > 0.1) { // Drum hit threshold
+          drumTrack.addNote({
+            midi: 36, // Bass drum
+            time: currentTime,
+            duration: 0.1,
+            velocity: Math.min(feature.rms * 127, 127)
+          });
+        }
+
+        if (feature.energy > 0.2) { // Bass note threshold
+          bassTrack.addNote({
+            midi: 48, // Bass note
+            time: currentTime,
+            duration: 0.2,
+            velocity: Math.min(feature.energy * 100, 127)
+          });
+        }
+
+        currentTime += timeIncrement;
+        features.push(feature.rms);
+
+        // Stop after processing the entire file
+        if (currentTime >= audioBuffer.duration) {
+          meydaAnalyzer.stop();
+          source.stop();
+          audioContext.close();
+
+          // Create downloadable files
+          const drumBlob = new Blob([drumMidi.toArray()], { type: 'audio/midi' });
+          const bassBlob = new Blob([bassMidi.toArray()], { type: 'audio/midi' });
+
+          resolve([
+            { name: 'drums.mid', url: URL.createObjectURL(drumBlob) },
+            { name: 'bass.mid', url: URL.createObjectURL(bassBlob) }
+          ]);
+        }
+      });
+    });
   };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
