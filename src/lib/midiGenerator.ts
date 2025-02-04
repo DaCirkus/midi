@@ -13,14 +13,48 @@ interface MeydaFeatures {
   energy: number
   spectralCentroid: number
   zcr: number
+  perceptualSpread: number
+  spectralFlatness: number
 }
 
 export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress?: (progress: number) => void): Promise<Blob> {
   const totalSamples = audioBuffer.length;
   let processedSamples = 0;
   
+  // Analyze a portion of the audio first to detect tempo
+  const tempoAnalyzer = Meyda.createMeydaAnalyzer({
+    audioContext: new AudioContext(),
+    source: new AudioBufferSourceNode(new AudioContext(), { buffer: audioBuffer }),
+    bufferSize: 2048,
+    featureExtractors: ['perceptualSpread', 'spectralFlatness'],
+    callback: () => {}
+  });
+
+  // Collect tempo data for first 10 seconds
+  const tempoData: number[] = [];
+  const sampleLength = Math.min(10 * audioBuffer.sampleRate, audioBuffer.length);
+  for (let i = 0; i < sampleLength; i += 2048) {
+    const features = tempoAnalyzer.get(['perceptualSpread', 'spectralFlatness']);
+    if (features && 
+        typeof features.perceptualSpread === 'number' && 
+        typeof features.spectralFlatness === 'number' &&
+        features.perceptualSpread > 0.5 && 
+        features.spectralFlatness > 0.3) {
+      tempoData.push(i);
+    }
+  }
+
+  // Calculate tempo from beat intervals
+  const intervals = tempoData.slice(1).map((time, i) => time - tempoData[i]);
+  const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  const tempo = Math.round(60 / (averageInterval / audioBuffer.sampleRate));
+  
+  // Use detected tempo, or fallback to 120 if detection fails
+  const detectedTempo = tempo >= 60 && tempo <= 200 ? tempo : 120;
+  console.log('Detected tempo:', detectedTempo, 'BPM');
+  
   const midi = new Midi()
-  midi.header.setTempo(120);
+  midi.header.setTempo(detectedTempo);
   midi.header.timeSignatures = [{
     ticks: 0,
     timeSignature: [4, 4]
