@@ -28,14 +28,31 @@ export const TABLES = {
   GAMES: 'rhythmGames'
 } as const
 
+function sanitizeFilename(filename: string): string {
+  // Remove special characters and replace spaces with underscores
+  return filename
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+}
+
 // Helper functions
 export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKETS) {
-  const fileName = `${Date.now()}-${file.name}`
+  const timestamp = Date.now()
+  const sanitizedName = sanitizeFilename(file.name)
+  const fileName = `${timestamp}-${sanitizedName}`
+  
+  console.log('Uploading file:', fileName)
+  
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKETS[bucket])
     .upload(fileName, file)
   
-  if (error) throw error
+  if (error) {
+    console.error('Upload error:', error)
+    throw error
+  }
   
   const { data: { publicUrl } } = supabase.storage
     .from(STORAGE_BUCKETS[bucket])
