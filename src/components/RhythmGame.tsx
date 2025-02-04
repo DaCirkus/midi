@@ -78,6 +78,9 @@ export default function RhythmGame({
     const hitWindow = 0.15; // 150ms window for hitting notes
     
     const direction = ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS];
+    if (!direction) return;
+    
+    console.log('Key pressed:', direction); // Debug log
     
     // Find the closest note for this key
     const noteIndex = notes.findIndex(note => 
@@ -86,12 +89,28 @@ export default function RhythmGame({
     );
     
     if (noteIndex !== -1) {
+      console.log('Hit note!', direction); // Debug log
       setScore(prev => prev + 100);
       setNotes(prev => prev.filter((_, i) => i !== noteIndex));
       // Add hit effect
       setHitEffects(prev => [...prev, { direction, startTime: Date.now() }]);
     }
   }, [isPlaying, notes]);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.keyCode in ARROW_KEYS) {
+        e.preventDefault();
+        handleKeyDown(e);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isPlaying, handleKeyDown]);
 
   // Game loop
   useEffect(() => {
@@ -104,6 +123,14 @@ export default function RhythmGame({
     function drawArrow(x: number, y: number, direction: Direction, glow = false) {
       ctx.save()
       ctx.translate(x, y)
+      
+      if (glow) {
+        ctx.shadowBlur = 30; // Increased glow
+        ctx.shadowColor = '#ffff00';
+      }
+
+      // Make arrows bigger
+      const size = glow ? 25 : 20;
       
       switch(direction) {
         case 'UP':
@@ -120,18 +147,21 @@ export default function RhythmGame({
           break
       }
 
-      if (glow) {
-        ctx.shadowBlur = 20
-        ctx.shadowColor = '#fff'
-      }
-
       ctx.beginPath()
-      ctx.moveTo(0, -15)
-      ctx.lineTo(10, 0)
-      ctx.lineTo(-10, 0)
+      ctx.moveTo(0, -size)
+      ctx.lineTo(size * 0.8, size * 0.5)
+      ctx.lineTo(-size * 0.8, size * 0.5)
       ctx.closePath()
       ctx.fillStyle = glow ? '#ffff00' : '#fff'
       ctx.fill()
+
+      if (glow) {
+        // Add outline for more visibility
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 2
+        ctx.stroke()
+      }
+
       ctx.restore()
     }
 
