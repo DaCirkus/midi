@@ -51,18 +51,24 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   useEffect(() => {
     async function loadMidi() {
       try {
-        const response = await fetch(midiUrl, {
-          headers: {
-            'Accept': 'audio/midi'
-          }
-        });
+        const response = await fetch(midiUrl);
         
         if (!response.ok) {
           throw new Error(`Failed to load MIDI: ${response.status} ${response.statusText}`);
         }
         
-        const arrayBuffer = await response.arrayBuffer();
-        const header = Array.from(new Uint8Array(arrayBuffer).slice(0, 4))
+        // Get base64 text
+        const base64 = await response.text();
+        
+        // Convert base64 to binary
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        
+        // Verify MIDI header
+        const header = Array.from(bytes.slice(0, 4))
           .map(b => String.fromCharCode(b))
           .join('');
           
@@ -70,7 +76,7 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
           throw new Error('Invalid MIDI file format');
         }
         
-        const midi = new Midi(arrayBuffer);
+        const midi = new Midi(bytes);
         
         const midiNotes = midi.tracks[0].notes.map(note => ({
           time: note.time,
