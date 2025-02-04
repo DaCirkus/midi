@@ -74,8 +74,15 @@ export default function FileUpload() {
       
       // Convert midiBlob to File with correct MIME type
       const midiFile = new File([midiBlob], 'gameplay.mid', { 
-        type: 'audio/x-midi' 
+        type: 'application/x-midi'
       });
+      
+      // Log MIDI file details for debugging
+      console.log('MIDI file details:', {
+        size: midiFile.size,
+        type: midiFile.type
+      });
+      
       const midiUrl = await uploadFile(midiFile, 'MIDI');
       
       // Create game with the uploaded URLs

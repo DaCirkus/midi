@@ -181,11 +181,20 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
               console.log('Generated notes:', noteCount);
               onProgress?.(100); // MIDI generation complete
               
-              // Use Tone.js MIDI's built-in binary conversion
-              const midiArray = midi.toArray()
-              const midiBlob = new Blob([new Uint8Array(midiArray)], { 
-                type: 'audio/midi'
+              // Convert MIDI to binary format
+              const midiData = midi.toArray();
+              const midiBlob = new Blob([new Uint8Array(midiData)], { 
+                type: 'application/x-midi' 
               });
+              
+              // Verify MIDI format
+              const reader = new FileReader();
+              reader.onload = () => {
+                const arr = new Uint8Array(reader.result as ArrayBuffer);
+                console.log('MIDI header:', Array.from(arr.slice(0, 4)).map(b => String.fromCharCode(b)).join(''));
+              };
+              reader.readAsArrayBuffer(midiBlob);
+              
               resolve(midiBlob);
             }
           } catch (err) {
