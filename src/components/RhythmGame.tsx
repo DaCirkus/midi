@@ -4,10 +4,14 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Midi } from '@tonejs/midi'
 
 const ARROW_KEYS = {
-  37: 'LEFT',
-  38: 'UP',
-  39: 'RIGHT',
-  40: 'DOWN'
+  37: 'LEFT',  // Left Arrow
+  38: 'UP',    // Up Arrow
+  39: 'RIGHT', // Right Arrow
+  40: 'DOWN',  // Down Arrow
+  65: 'LEFT',  // A
+  87: 'UP',    // W
+  68: 'RIGHT', // D
+  83: 'DOWN'   // S
 } as const
 
 type Direction = typeof ARROW_KEYS[keyof typeof ARROW_KEYS]
@@ -79,6 +83,13 @@ export default function RhythmGame({
     const direction = ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS];
     if (!direction) return;
     
+    handleInput(direction);
+  }, [isPlaying, notes]);
+
+  // Handle input from any source (keyboard or touch)
+  const handleInput = useCallback((direction: Direction) => {
+    if (!isPlaying) return;
+    
     // Find notes in the correct lane that are near the hit zone
     const hitY = canvasRef.current ? canvasRef.current.height - 50 : 0;
     const hitWindow = 50; // pixels
@@ -105,19 +116,22 @@ export default function RhythmGame({
         points = 100; // Perfect
       } else if (yDiff < 35) {
         points = 50; // Good
+      } else {
+        points = -5; // Miss penalty
       }
       
-      setScore(prev => prev + points);
+      setScore(prev => Math.max(0, prev + points)); // Prevent negative score
       setNotes(prev => prev.filter(n => n !== closestNote));
       
       // Add hit or miss effect
       setHitEffects(prev => [...prev, { 
         direction, 
         startTime: Date.now(),
-        isMiss: points === 0
+        isMiss: points <= 0
       }]);
     } else {
       // Complete miss - no notes nearby
+      setScore(prev => Math.max(0, prev - 5)); // Prevent negative score
       setHitEffects(prev => [...prev, { 
         direction, 
         startTime: Date.now(),
@@ -302,32 +316,26 @@ export default function RhythmGame({
         </button>
       )}
 
-      {/* Mobile controls */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 flex justify-around bg-black/50">
-        <button 
-          onTouchStart={() => handleKeyDown({ keyCode: 37 } as KeyboardEvent)} 
-          className="w-16 h-16 bg-white/20 rounded-full"
-        >
-          ←
-        </button>
-        <button 
-          onTouchStart={() => handleKeyDown({ keyCode: 38 } as KeyboardEvent)} 
-          className="w-16 h-16 bg-white/20 rounded-full"
-        >
-          ↑
-        </button>
-        <button 
-          onTouchStart={() => handleKeyDown({ keyCode: 40 } as KeyboardEvent)} 
-          className="w-16 h-16 bg-white/20 rounded-full"
-        >
-          ↓
-        </button>
-        <button 
-          onTouchStart={() => handleKeyDown({ keyCode: 39 } as KeyboardEvent)} 
-          className="w-16 h-16 bg-white/20 rounded-full"
-        >
-          →
-        </button>
+      {/* Hit zones for touch input */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 flex justify-center items-end">
+        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction, i) => (
+          <button
+            key={direction}
+            onClick={() => handleInput(direction as Direction)}
+            className="w-24 h-24 mx-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors
+              flex items-center justify-center text-2xl text-white/50"
+          >
+            {direction}
+          </button>
+        ))}
+      </div>
+
+      {/* Legacy mobile controls - hidden on all devices now */}
+      <div className="hidden">
+        <button onTouchStart={() => handleInput('LEFT')}>←</button>
+        <button onTouchStart={() => handleInput('UP')}>↑</button>
+        <button onTouchStart={() => handleInput('DOWN')}>↓</button>
+        <button onTouchStart={() => handleInput('RIGHT')}>→</button>
       </div>
     </div>
   )
