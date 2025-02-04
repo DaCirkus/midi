@@ -181,22 +181,9 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
               console.log('Generated notes:', noteCount);
               onProgress?.(100); // MIDI generation complete
               
-              // Convert MIDI to binary format with proper headers
-              const midiData = midi.toArray();
-              const header = new Uint8Array([
-                0x4d, 0x54, 0x68, 0x64, // MThd
-                0x00, 0x00, 0x00, 0x06, // Header size (6 bytes)
-                0x00, 0x01, // Format type 1
-                0x00, 0x01, // One track
-                0x01, 0xe0  // Time division (480 ticks per quarter note)
-              ]);
-
-              const trackData = new Uint8Array(midiData);
-              const combinedData = new Uint8Array(header.length + trackData.length);
-              combinedData.set(header);
-              combinedData.set(trackData, header.length);
-
-              const midiBlob = new Blob([combinedData], { 
+              // Use Tone.js MIDI's built-in binary conversion
+              const midiArray = midi.toArray()
+              const midiBlob = new Blob([new Uint8Array(midiArray)], { 
                 type: 'audio/midi'
               });
               resolve(midiBlob);
