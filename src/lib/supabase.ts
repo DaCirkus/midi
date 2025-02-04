@@ -45,6 +45,31 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   
   console.log('Uploading file:', fileName, 'type:', file.type)
   
+  // For MIDI files, ensure binary upload
+  if (bucket === 'MIDI') {
+    const arrayBuffer = await file.arrayBuffer()
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKETS[bucket])
+      .upload(fileName, arrayBuffer, {
+        contentType: 'audio/midi',
+        cacheControl: '3600',
+        upsert: false,
+        duplex: 'half'
+      })
+
+    if (error) {
+      console.error('Upload error:', error)
+      throw error
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(STORAGE_BUCKETS[bucket])
+      .getPublicUrl(fileName)
+
+    return publicUrl
+  }
+  
+  // For other files, use standard upload
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKETS[bucket])
     .upload(fileName, file, {

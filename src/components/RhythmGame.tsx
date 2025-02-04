@@ -51,23 +51,40 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   useEffect(() => {
     async function loadMidi() {
       try {
-        const response = await fetch(midiUrl)
-        const arrayBuffer = await response.arrayBuffer()
-        const midi = new Midi(arrayBuffer)
+        const response = await fetch(midiUrl, {
+          headers: {
+            'Accept': 'audio/midi'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load MIDI: ${response.status} ${response.statusText}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const header = Array.from(new Uint8Array(arrayBuffer).slice(0, 4))
+          .map(b => String.fromCharCode(b))
+          .join('');
+          
+        if (header !== 'MThd') {
+          throw new Error('Invalid MIDI file format');
+        }
+        
+        const midi = new Midi(arrayBuffer);
         
         const midiNotes = midi.tracks[0].notes.map(note => ({
           time: note.time,
           direction: ARROW_KEYS[note.midi as keyof typeof ARROW_KEYS],
           y: -100 // Start above the canvas
-        }))
+        }));
         
-        setNotes(midiNotes)
+        setNotes(midiNotes);
       } catch (error) {
-        console.error('Failed to load MIDI:', error)
+        console.error('Failed to load MIDI:', error);
       }
     }
-    loadMidi()
-  }, [midiUrl])
+    loadMidi();
+  }, [midiUrl]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
