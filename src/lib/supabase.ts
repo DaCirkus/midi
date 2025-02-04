@@ -47,7 +47,11 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKETS[bucket])
-    .upload(fileName, file)
+    .upload(fileName, file, {
+      contentType: file.type,
+      cacheControl: '3600',
+      upsert: false
+    })
   
   if (error) {
     console.error('Upload error:', error)

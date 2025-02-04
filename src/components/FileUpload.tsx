@@ -72,8 +72,10 @@ export default function FileUpload() {
       // First upload both files
       const mp3Url = await uploadFile(mp3File, 'MP3');
       
-      // Convert midiBlob to File
-      const midiFile = new File([midiBlob], 'gameplay.mid', { type: 'audio/midi' });
+      // Convert midiBlob to File with correct MIME type
+      const midiFile = new File([midiBlob], 'gameplay.mid', { 
+        type: 'audio/x-midi' 
+      });
       const midiUrl = await uploadFile(midiFile, 'MIDI');
       
       // Create game with the uploaded URLs
