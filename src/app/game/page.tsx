@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { getGame, type GameData } from '@/lib/supabase'
 import RhythmGame from '@/components/RhythmGame'
+import { useEffect, useState } from 'react'
+import { getGame, type GameData } from '@/lib/supabase'
 
-export default function GamePage() {
+function GameContent() {
   const searchParams = useSearchParams()
   const gameId = searchParams.get('id')
   const [gameData, setGameData] = useState<GameData | null>(null)
@@ -44,5 +45,13 @@ export default function GamePage() {
         Use arrow keys to hit the notes as they reach the bottom of the screen
       </div>
     </div>
+  )
+}
+
+export default function GamePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GameContent />
+    </Suspense>
   )
 } 
