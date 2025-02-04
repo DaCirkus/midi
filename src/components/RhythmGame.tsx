@@ -18,7 +18,13 @@ interface Note {
   y: number
 }
 
-export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Url: string }) {
+export default function RhythmGame({ 
+  midiData, 
+  mp3Url 
+}: { 
+  midiData: { notes: Array<{ time: number, midi: number }>, tempo: number }, 
+  mp3Url: string 
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [notes, setNotes] = useState<Note[]>([])
@@ -49,48 +55,14 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
 
   // Load MIDI data
   useEffect(() => {
-    async function loadMidi() {
-      try {
-        const response = await fetch(midiUrl);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load MIDI: ${response.status} ${response.statusText}`);
-        }
-        
-        // Get base64 text
-        const base64 = await response.text();
-        
-        // Convert base64 to binary
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        
-        // Verify MIDI header
-        const header = Array.from(bytes.slice(0, 4))
-          .map(b => String.fromCharCode(b))
-          .join('');
-          
-        if (header !== 'MThd') {
-          throw new Error('Invalid MIDI file format');
-        }
-        
-        const midi = new Midi(bytes);
-        
-        const midiNotes = midi.tracks[0].notes.map(note => ({
-          time: note.time,
-          direction: ARROW_KEYS[note.midi as keyof typeof ARROW_KEYS],
-          y: -100 // Start above the canvas
-        }));
-        
-        setNotes(midiNotes);
-      } catch (error) {
-        console.error('Failed to load MIDI:', error);
-      }
-    }
-    loadMidi();
-  }, [midiUrl]);
+    const midiNotes = midiData.notes.map(note => ({
+      time: note.time,
+      direction: ARROW_KEYS[note.midi as keyof typeof ARROW_KEYS],
+      y: -100 // Start above the canvas
+    }));
+    
+    setNotes(midiNotes);
+  }, [midiData]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

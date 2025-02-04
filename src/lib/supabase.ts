@@ -13,14 +13,21 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 export interface GameData {
   id: string
   mp3_url: string
-  midi_url: string
+  midi_data: {
+    notes: Array<{
+      time: number
+      midi: number
+      duration: number
+      velocity: number
+    }>
+    tempo: number
+  }
   created_at: string
 }
 
 // Storage bucket names
 export const STORAGE_BUCKETS = {
-  MP3: 'mp3-files',
-  MIDI: 'midi-files'
+  MP3: 'mp3-files'
 } as const
 
 // Table names
@@ -45,31 +52,6 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   
   console.log('Uploading file:', fileName, 'type:', file.type)
   
-  // For MIDI files, use base64 encoding
-  if (bucket === 'MIDI') {
-    const arrayBuffer = await file.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
-      .upload(fileName, base64, {
-        contentType: 'text/plain',
-        cacheControl: '3600',
-        upsert: false
-      })
-
-    if (error) {
-      console.error('Upload error:', error)
-      throw error
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
-      .getPublicUrl(fileName)
-
-    return publicUrl
-  }
-  
-  // For other files, use standard upload
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKETS[bucket])
     .upload(fileName, file, {
@@ -90,10 +72,10 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   return publicUrl
 }
 
-export async function createGame(mp3Url: string, midiUrl: string) {
+export async function createGame(mp3Url: string, midiData: GameData['midi_data']) {
   const { data, error } = await supabase
     .from(TABLES.GAMES)
-    .insert([{ mp3_url: mp3Url, midi_url: midiUrl }])
+    .insert([{ mp3_url: mp3Url, midi_data: midiData }])
     .select()
     .single()
   

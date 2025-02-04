@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadFile, createGame } from '@/lib/supabase';
 import { generateMidiFromAudio } from '@/lib/midiGenerator';
+import { Midi } from '@tonejs/midi';
 
 export default function FileUpload() {
   const router = useRouter();
@@ -69,34 +70,25 @@ export default function FileUpload() {
     setLoading(true);
     setError(null);
     try {
-      // First upload both files
+      // Upload MP3 file
       const mp3Url = await uploadFile(mp3File, 'MP3');
       
-      // Convert midiBlob to File with correct MIME type
-      const midiFile = new File([midiBlob], 'gameplay.mid', { 
-        type: 'audio/midi'
-      });
+      // Convert MIDI blob to data
+      const arrayBuffer = await midiBlob.arrayBuffer();
+      const midi = new Midi(arrayBuffer);
       
-      // Log MIDI file details for debugging
-      console.log('MIDI file details:', {
-        size: midiFile.size,
-        type: midiFile.type
-      });
+      const midiData = {
+        notes: midi.tracks[0].notes.map(note => ({
+          time: note.time,
+          midi: note.midi,
+          duration: note.duration,
+          velocity: note.velocity
+        })),
+        tempo: midi.header.tempos[0]?.bpm || 120
+      };
       
-      // Verify MIDI header before upload
-      const arrayBuffer = await midiFile.arrayBuffer();
-      const header = Array.from(new Uint8Array(arrayBuffer).slice(0, 4))
-        .map(b => String.fromCharCode(b))
-        .join('');
-      
-      if (header !== 'MThd') {
-        throw new Error('Invalid MIDI file format');
-      }
-      
-      const midiUrl = await uploadFile(midiFile, 'MIDI');
-      
-      // Create game with the uploaded URLs
-      const game = await createGame(mp3Url, midiUrl);
+      // Create game with MP3 URL and MIDI data
+      const game = await createGame(mp3Url, midiData);
       router.push(`/game?id=${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
