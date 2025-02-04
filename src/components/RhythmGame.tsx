@@ -41,9 +41,17 @@ export default function RhythmGame({
   const [hitEffects, setHitEffects] = useState<HitEffect[]>([])
   const [isPlaying, setIsPlaying] = useState(false)
   const [score, setScore] = useState(0)
+  const [volume, setVolume] = useState(0.7) // Default volume
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
   const currentTimeRef = useRef<number>(0)
+
+  // Update volume when changed
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   // Add resize handler
   useEffect(() => {
@@ -301,8 +309,22 @@ export default function RhythmGame({
       />
       <audio ref={audioRef} src={mp3Url} />
       
-      <div className="absolute top-4 right-4 bg-black/50 p-4 rounded">
-        Score: {score}
+      {/* Score and Volume Controls */}
+      <div className="absolute top-4 right-4 bg-black/50 p-4 rounded space-y-2">
+        <div>Score: {score}</div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🔈</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-24"
+          />
+          <span className="text-sm">🔊</span>
+        </div>
       </div>
       
       {!isPlaying && (
@@ -316,29 +338,25 @@ export default function RhythmGame({
         </button>
       )}
 
-      {/* Hit zones for click/touch input */}
-      <div className="absolute inset-0 pointer-events-none">
-        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction, i) => {
-          const x = `${30 + i * 15}%`; // Match canvas x positions
-          return (
-            <button
-              key={direction}
-              onMouseDown={() => handleInput(direction as Direction)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleInput(direction as Direction);
-              }}
-              className="absolute w-[40px] h-[40px] pointer-events-auto 
-                bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors"
-              style={{
-                left: `calc(${x} - 20px)`,
-                bottom: '50px', // Match canvas hit zone position
-                transform: 'translateZ(0)', // Force GPU acceleration
-                WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-              }}
-            />
-          );
-        })}
+      {/* Mobile touch controls */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 flex justify-center gap-2 bg-black/50">
+        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
+          <button
+            key={direction}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleInput(direction as Direction);
+            }}
+            onClick={() => handleInput(direction as Direction)}
+            className="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center
+              text-3xl active:bg-white/40 transition-colors"
+          >
+            {direction === 'LEFT' && '←'}
+            {direction === 'UP' && '↑'}
+            {direction === 'DOWN' && '↓'}
+            {direction === 'RIGHT' && '→'}
+          </button>
+        ))}
       </div>
     </div>
   )
