@@ -130,16 +130,35 @@ export default function RhythmGame({
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       
-      // Draw target lines
+      // Draw target lines and hit zones
       ctx.strokeStyle = '#333'
       ctx.lineWidth = 2
       for (let i = 0; i < 4; i++) {
         const x = canvas.width * (0.3 + i * 0.15)
+        
+        // Vertical guide line
         ctx.beginPath()
         ctx.moveTo(x, 0)
         ctx.lineTo(x, canvas.height)
         ctx.stroke()
+        
+        // Hit zone
+        const hitY = canvas.height - 50
+        ctx.fillStyle = isPlaying ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'
+        ctx.fillRect(x - 20, hitY - 20, 40, 40)
+        
+        // Hit line
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(x - 20, hitY)
+        ctx.lineTo(x + 20, hitY)
+        ctx.stroke()
       }
+      
+      // Reset style for notes
+      ctx.strokeStyle = '#333'
+      ctx.lineWidth = 2
 
       // Update and draw notes
       setNotes(prev => prev.map(note => ({
