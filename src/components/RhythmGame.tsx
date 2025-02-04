@@ -21,6 +21,7 @@ interface Note {
 interface HitEffect {
   direction: Direction
   startTime: number
+  isMiss?: boolean
 }
 
 export default function RhythmGame({ 
@@ -75,28 +76,53 @@ export default function RhythmGame({
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isPlaying) return;
     
-    const currentTime = currentTimeRef.current;
-    const hitWindow = 0.15; // 150ms window for hitting notes
-    
     const direction = ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS];
     if (!direction) return;
     
-    console.log('Key pressed:', direction, 'at time:', currentTime); // Debug log
+    // Find notes in the correct lane that are near the hit zone
+    const hitY = canvasRef.current ? canvasRef.current.height - 50 : 0;
+    const hitWindow = 50; // pixels
     
-    // Find the closest note for this key
-    const noteIndex = notes.findIndex(note => {
-      const timeDiff = Math.abs(note.time - currentTime);
-      const isCorrectDirection = note.direction === direction;
-      console.log('Note:', note.direction, 'time:', note.time, 'diff:', timeDiff); // Debug timing
-      return isCorrectDirection && timeDiff < hitWindow;
-    });
+    const nearbyNotes = notes.filter(note => 
+      note.direction === direction && 
+      Math.abs(note.y - hitY) < hitWindow
+    );
     
-    if (noteIndex !== -1) {
-      console.log('Hit note!', direction); // Debug log
-      setScore(prev => prev + 100);
-      setNotes(prev => prev.filter((_, i) => i !== noteIndex));
-      // Add hit effect
-      setHitEffects(prev => [...prev, { direction, startTime: Date.now() }]);
+    if (nearbyNotes.length > 0) {
+      // Find the closest note
+      const closestNote = nearbyNotes.reduce((closest, note) => 
+        Math.abs(note.y - hitY) < Math.abs(closest.y - hitY) ? note : closest
+      );
+      
+      const yDiff = Math.abs(closestNote.y - hitY);
+      console.log('Hit attempt:', direction, 'y-diff:', yDiff);
+      
+      // Perfect hit: within 20 pixels
+      // Good hit: within 35 pixels
+      // Miss: within 50 pixels
+      let points = 0;
+      if (yDiff < 20) {
+        points = 100; // Perfect
+      } else if (yDiff < 35) {
+        points = 50; // Good
+      }
+      
+      setScore(prev => prev + points);
+      setNotes(prev => prev.filter(n => n !== closestNote));
+      
+      // Add hit or miss effect
+      setHitEffects(prev => [...prev, { 
+        direction, 
+        startTime: Date.now(),
+        isMiss: points === 0
+      }]);
+    } else {
+      // Complete miss - no notes nearby
+      setHitEffects(prev => [...prev, { 
+        direction, 
+        startTime: Date.now(),
+        isMiss: true
+      }]);
     }
   }, [isPlaying, notes]);
 
@@ -123,13 +149,13 @@ export default function RhythmGame({
     const ctx = canvas.getContext('2d')!
     const speed = 200 // pixels per second
 
-    function drawArrow(x: number, y: number, direction: Direction, glow = false) {
+    function drawArrow(x: number, y: number, direction: Direction, glow = false, isMiss = false) {
       ctx.save()
       ctx.translate(x, y)
       
       if (glow) {
-        ctx.shadowBlur = 30; // Increased glow
-        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = isMiss ? '#ff0000' : '#ffff00';
       }
 
       // Make arrows bigger
@@ -155,12 +181,11 @@ export default function RhythmGame({
       ctx.lineTo(size * 0.8, size * 0.5)
       ctx.lineTo(-size * 0.8, size * 0.5)
       ctx.closePath()
-      ctx.fillStyle = glow ? '#ffff00' : '#fff'
+      ctx.fillStyle = glow ? (isMiss ? '#ff0000' : '#ffff00') : '#fff'
       ctx.fill()
 
       if (glow) {
-        // Add outline for more visibility
-        ctx.strokeStyle = '#fff'
+        ctx.strokeStyle = isMiss ? '#ff0000' : '#fff'
         ctx.lineWidth = 2
         ctx.stroke()
       }
@@ -210,7 +235,7 @@ export default function RhythmGame({
         if (effect) {
           const age = Date.now() - effect.startTime;
           if (age < 100) { // Effect lasts 100ms
-            drawArrow(x, hitY, direction, true);
+            drawArrow(x, hitY, direction, true, effect.isMiss);
           }
         }
       }
