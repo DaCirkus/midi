@@ -21,10 +21,16 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
   const totalSamples = audioBuffer.length;
   let processedSamples = 0;
   
+  // Create a single AudioContext for all operations
+  const audioContext = new AudioContext();
+  
   // Analyze a portion of the audio first to detect tempo
+  const tempoSource = audioContext.createBufferSource();
+  tempoSource.buffer = audioBuffer;
+  
   const tempoAnalyzer = Meyda.createMeydaAnalyzer({
-    audioContext: new AudioContext(),
-    source: new AudioBufferSourceNode(new AudioContext(), { buffer: audioBuffer }),
+    audioContext,
+    source: tempoSource,
     bufferSize: 2048,
     featureExtractors: ['perceptualSpread', 'spectralFlatness'],
     callback: () => {}
@@ -44,10 +50,14 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
     }
   }
 
+  // Clean up tempo analysis
+  tempoSource.disconnect();
+  tempoAnalyzer.stop();
+
   // Calculate tempo from beat intervals
   const intervals = tempoData.slice(1).map((time, i) => time - tempoData[i]);
-  const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  const tempo = Math.round(60 / (averageInterval / audioBuffer.sampleRate));
+  const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length || 0;
+  const tempo = averageInterval ? Math.round(60 / (averageInterval / audioBuffer.sampleRate)) : 120;
   
   // Use detected tempo, or fallback to 120 if detection fails
   const detectedTempo = tempo >= 60 && tempo <= 200 ? tempo : 120;
@@ -76,7 +86,7 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
       onProgress?.(5); // Starting
       console.log('Starting MIDI generation with audio buffer:', audioBuffer);
       
-      const audioContext = new AudioContext();
+      // Create a new source for the main analysis
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
       
