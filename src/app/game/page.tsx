@@ -38,7 +38,7 @@ function GameContent() {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Rhythm Game</h1>
       <RhythmGame 
-        midiUrl={gameData.midi_url} 
+        midiData={gameData.midi_data}
         mp3Url={gameData.mp3_url}
       />
       <div className="mt-4 text-sm text-gray-500">
