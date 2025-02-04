@@ -302,7 +302,7 @@ export default function RhythmGame({
   }
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center">
       <canvas
         ref={canvasRef}
         className="bg-gray-900 rounded-lg w-full"
@@ -312,10 +312,10 @@ export default function RhythmGame({
       {/* Game UI Container - centered in play area */}
       <div className="absolute inset-0 flex flex-col items-center">
         {/* Score and Volume Controls */}
-        <div className="bg-black/50 p-4 rounded space-y-4 mt-4 w-[300px] text-center">
-          <div className="text-xl">Score: {score}</div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-lg">🔈</span>
+        <div className="bg-black/50 p-6 rounded-xl space-y-6 mt-8 w-[400px] text-center">
+          <div className="text-2xl font-bold">Score: {score}</div>
+          <div className="flex items-center justify-center gap-4">
+            <span className="text-2xl">🔈</span>
             <input
               type="range"
               min="0"
@@ -323,11 +323,11 @@ export default function RhythmGame({
               step="0.1"
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-48"
+              className="w-64 h-2"
             />
-            <span className="text-lg">🔊</span>
+            <span className="text-2xl">🔊</span>
           </div>
-          <div className="text-sm text-gray-300">
+          <div className="text-lg text-gray-300">
             Use arrow keys or WASD to play
           </div>
         </div>
@@ -337,7 +337,7 @@ export default function RhythmGame({
         <button
           onClick={handleStart}
           className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-            px-8 py-4 bg-purple-500 text-white rounded-lg text-xl font-bold
+            px-12 py-6 bg-purple-500 text-white rounded-xl text-2xl font-bold
             hover:bg-purple-600 transition-colors"
         >
           Start Game
@@ -345,31 +345,28 @@ export default function RhythmGame({
       )}
 
       {/* Mobile touch controls - much bigger buttons */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 flex flex-col items-center bg-black/50">
-        {/* Instructions */}
-        <div className="text-center py-2 text-gray-300">
-          Tap arrows when notes align with the white lines
-        </div>
-        
-        {/* Buttons Container */}
-        <div className="w-full max-w-[500px] p-4 grid grid-cols-4 gap-2">
-          {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
-            <button
-              key={direction}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleInput(direction as Direction);
-              }}
-              onClick={() => handleInput(direction as Direction)}
-              className="aspect-square bg-white/20 rounded-2xl flex items-center justify-center
-                text-5xl active:bg-white/40 transition-colors"
-            >
-              {direction === 'LEFT' && '←'}
-              {direction === 'UP' && '↑'}
-              {direction === 'DOWN' && '↓'}
-              {direction === 'RIGHT' && '→'}
-            </button>
-          ))}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-black/50">
+        <div className="container mx-auto px-4 pb-8 pt-4">
+          {/* Buttons Container */}
+          <div className="grid grid-cols-4 gap-4 max-w-3xl mx-auto">
+            {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
+              <button
+                key={direction}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleInput(direction as Direction);
+                }}
+                onClick={() => handleInput(direction as Direction)}
+                className="aspect-square bg-white/20 rounded-3xl flex items-center justify-center
+                  text-8xl active:bg-white/40 transition-colors min-h-[120px]"
+              >
+                {direction === 'LEFT' && '←'}
+                {direction === 'UP' && '↑'}
+                {direction === 'DOWN' && '↓'}
+                {direction === 'RIGHT' && '→'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
