@@ -72,7 +72,15 @@ export default function FileUpload() {
     setLoading(true);
     setError(null);
     try {
-      const game = await createGame(mp3File.name, URL.createObjectURL(midiBlob));
+      // First upload both files
+      const mp3Url = await uploadFile(mp3File, 'MP3');
+      
+      // Convert midiBlob to File
+      const midiFile = new File([midiBlob], 'gameplay.mid', { type: 'audio/midi' });
+      const midiUrl = await uploadFile(midiFile, 'MIDI');
+      
+      // Create game with the uploaded URLs
+      const game = await createGame(mp3Url, midiUrl);
       router.push(`/game?id=${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
