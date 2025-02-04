@@ -69,8 +69,11 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
     ticks: 0,
     timeSignature: [4, 4]
   }];
-  const gameTrack = midi.addTrack()
-  
+
+  // Create a track with proper initialization
+  const gameTrack = midi.addTrack();
+  gameTrack.channel = 0; // Set MIDI channel to drums
+
   let currentTime = 0
   const timeIncrement = 512 / audioBuffer.sampleRate
   const minTimeBetweenNotes = 0.4
@@ -178,10 +181,23 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
               console.log('Generated notes:', noteCount);
               onProgress?.(100); // MIDI generation complete
               
-              // Convert MIDI to binary format
-              const midiArray = midi.toArray();
-              const midiBlob = new Blob([new Uint8Array(midiArray)], { 
-                type: 'audio/midi; format=1; timeDivision=480'  // Standard MIDI format
+              // Convert MIDI to binary format with proper headers
+              const midiData = midi.toArray();
+              const header = new Uint8Array([
+                0x4d, 0x54, 0x68, 0x64, // MThd
+                0x00, 0x00, 0x00, 0x06, // Header size (6 bytes)
+                0x00, 0x01, // Format type 1
+                0x00, 0x01, // One track
+                0x01, 0xe0  // Time division (480 ticks per quarter note)
+              ]);
+
+              const trackData = new Uint8Array(midiData);
+              const combinedData = new Uint8Array(header.length + trackData.length);
+              combinedData.set(header);
+              combinedData.set(trackData, header.length);
+
+              const midiBlob = new Blob([combinedData], { 
+                type: 'audio/midi'
               });
               resolve(midiBlob);
             }
