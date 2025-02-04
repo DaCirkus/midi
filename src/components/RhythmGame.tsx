@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Midi } from '@tonejs/midi'
 
 const ARROW_KEYS = {
@@ -27,6 +27,26 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
 
+  // Add resize handler
+  useEffect(() => {
+    function handleResize() {
+      if (canvasRef.current) {
+        // Make canvas fill container while maintaining aspect ratio
+        const container = canvasRef.current.parentElement;
+        if (container) {
+          const width = container.clientWidth;
+          const height = Math.min(window.innerHeight * 0.7, width * 0.75); // 4:3 aspect ratio
+          canvasRef.current.width = width;
+          canvasRef.current.height = height;
+        }
+      }
+    }
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial resize
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Load MIDI data
   useEffect(() => {
     async function loadMidi() {
@@ -46,28 +66,23 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   }, [midiUrl])
 
   // Handle keyboard input
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (!isPlaying) return
-      
-      const currentTime = (Date.now() - startTimeRef.current) / 1000
-      const hitWindow = 0.15 // 150ms window for hitting notes
-      
-      // Find the closest note for this key
-      const noteIndex = notes.findIndex(note => 
-        ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS] === note.direction &&
-        Math.abs(note.time - currentTime) < hitWindow
-      )
-      
-      if (noteIndex !== -1) {
-        setScore(prev => prev + 100)
-        setNotes(prev => prev.filter((_, i) => i !== noteIndex))
-      }
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isPlaying) return;
+    
+    const currentTime = (Date.now() - startTimeRef.current) / 1000;
+    const hitWindow = 0.15; // 150ms window for hitting notes
+    
+    // Find the closest note for this key
+    const noteIndex = notes.findIndex(note => 
+      ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS] === note.direction &&
+      Math.abs(note.time - currentTime) < hitWindow
+    );
+    
+    if (noteIndex !== -1) {
+      setScore(prev => prev + 100);
+      setNotes(prev => prev.filter((_, i) => i !== noteIndex));
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPlaying, notes])
+  }, [isPlaying, notes]);
 
   // Game loop
   useEffect(() => {
@@ -160,12 +175,10 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-4xl mx-auto">
       <canvas
         ref={canvasRef}
-        width={800}
-        height={600}
-        className="bg-gray-900 rounded-lg"
+        className="bg-gray-900 rounded-lg w-full touch-none"
       />
       <audio ref={audioRef} src={mp3Url} />
       
@@ -183,6 +196,34 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
           Start Game
         </button>
       )}
+
+      {/* Mobile controls */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 flex justify-around bg-black/50">
+        <button 
+          onTouchStart={() => handleKeyDown({ keyCode: 37 } as KeyboardEvent)} 
+          className="w-16 h-16 bg-white/20 rounded-full"
+        >
+          ←
+        </button>
+        <button 
+          onTouchStart={() => handleKeyDown({ keyCode: 38 } as KeyboardEvent)} 
+          className="w-16 h-16 bg-white/20 rounded-full"
+        >
+          ↑
+        </button>
+        <button 
+          onTouchStart={() => handleKeyDown({ keyCode: 40 } as KeyboardEvent)} 
+          className="w-16 h-16 bg-white/20 rounded-full"
+        >
+          ↓
+        </button>
+        <button 
+          onTouchStart={() => handleKeyDown({ keyCode: 39 } as KeyboardEvent)} 
+          className="w-16 h-16 bg-white/20 rounded-full"
+        >
+          →
+        </button>
+      </div>
     </div>
   )
 } 

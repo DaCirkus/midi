@@ -15,7 +15,7 @@ interface MeydaFeatures {
   zcr: number
 }
 
-export async function generateMidiFromAudio(audioBuffer: AudioBuffer): Promise<Blob> {
+export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress?: (progress: number) => void): Promise<Blob> {
   console.log('Starting MIDI generation with audio buffer:', {
     duration: audioBuffer.duration,
     sampleRate: audioBuffer.sampleRate,
@@ -56,7 +56,17 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer): Promise<B
 
   return new Promise((resolve, reject) => {
     try {
-      console.log('Creating Meyda analyzer')
+      onProgress?.(10); // Starting
+      console.log('Starting MIDI generation with audio buffer:', audioBuffer);
+      
+      const audioContext = new AudioContext();
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      
+      onProgress?.(20); // Audio context setup
+      console.log('Audio nodes connected');
+      
+      console.log('Creating Meyda analyzer');
       const analyzer = Meyda.createMeydaAnalyzer({
         audioContext,
         source,
@@ -133,7 +143,10 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer): Promise<B
               })
 
               console.log('Generated notes:', noteCount)
-              resolve(new Blob([midi.toArray()], { type: 'audio/midi' }))
+              onProgress?.(95); // Processing complete
+              const midiArray = midi.toArray()
+              const midiBlob = new Blob([new Uint8Array(midiArray)], { type: 'audio/midi' })
+              resolve(midiBlob)
             }
           } catch (err) {
             console.error('Error in analyzer callback:', err)

@@ -45,18 +45,15 @@ export default function FileUpload() {
     setError(null);
     
     try {
-      setProgress(20);
       // Convert MP3 to AudioBuffer
       const arrayBuffer = await mp3File.arrayBuffer();
       const audioContext = new AudioContext();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      setProgress(40);
-      console.log('Audio decoded');
-
-      // Generate MIDI
-      const midi = await generateMidiFromAudio(audioBuffer);
-      setProgress(100);
-      console.log('MIDI generated');
+      
+      // Generate MIDI with progress updates
+      const midi = await generateMidiFromAudio(audioBuffer, (progress) => {
+        setProgress(progress);
+      });
       
       setMidiBlob(midi);
     } catch (error) {
