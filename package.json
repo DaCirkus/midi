@@ -12,6 +12,7 @@
     "@mantine/core": "^7.16.2",
     "@mantine/dropzone": "^7.16.2",
     "@mantine/hooks": "^7.16.2",
+    "@supabase/supabase-js": "^2.48.1",
     "@tabler/icons-react": "^3.29.0",
     "@tonejs/midi": "^2.0.28",
     "meyda": "^5.6.3",
