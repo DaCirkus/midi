@@ -297,7 +297,7 @@ export default function RhythmGame({
     <div className="relative w-full max-w-4xl mx-auto">
       <canvas
         ref={canvasRef}
-        className="bg-gray-900 rounded-lg w-full touch-none"
+        className="bg-gray-900 rounded-lg w-full"
       />
       <audio ref={audioRef} src={mp3Url} />
       
@@ -316,26 +316,20 @@ export default function RhythmGame({
         </button>
       )}
 
-      {/* Hit zones for touch input */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 flex justify-center items-end">
+      {/* Hit zones for click/touch input */}
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '100px' }}>
         {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction, i) => (
           <button
             key={direction}
             onClick={() => handleInput(direction as Direction)}
-            className="w-24 h-24 mx-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors
-              flex items-center justify-center text-2xl text-white/50"
-          >
-            {direction}
-          </button>
+            className="absolute w-[40px] h-[40px] pointer-events-auto 
+              bg-white/10 hover:bg-white/20 transition-colors rounded"
+            style={{
+              left: `calc(${30 + i * 15}% - 20px)`,
+              bottom: '30px'
+            }}
+          />
         ))}
-      </div>
-
-      {/* Legacy mobile controls - hidden on all devices now */}
-      <div className="hidden">
-        <button onTouchStart={() => handleInput('LEFT')}>←</button>
-        <button onTouchStart={() => handleInput('UP')}>↑</button>
-        <button onTouchStart={() => handleInput('DOWN')}>↓</button>
-        <button onTouchStart={() => handleInput('RIGHT')}>→</button>
       </div>
     </div>
   )
