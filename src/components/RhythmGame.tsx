@@ -38,6 +38,7 @@ export default function RhythmGame({
   const [score, setScore] = useState(0)
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
+  const currentTimeRef = useRef<number>(0)
 
   // Add resize handler
   useEffect(() => {
@@ -74,19 +75,21 @@ export default function RhythmGame({
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isPlaying) return;
     
-    const currentTime = (Date.now() - startTimeRef.current) / 1000;
+    const currentTime = currentTimeRef.current;
     const hitWindow = 0.15; // 150ms window for hitting notes
     
     const direction = ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS];
     if (!direction) return;
     
-    console.log('Key pressed:', direction); // Debug log
+    console.log('Key pressed:', direction, 'at time:', currentTime); // Debug log
     
     // Find the closest note for this key
-    const noteIndex = notes.findIndex(note => 
-      note.direction === direction &&
-      Math.abs(note.time - currentTime) < hitWindow
-    );
+    const noteIndex = notes.findIndex(note => {
+      const timeDiff = Math.abs(note.time - currentTime);
+      const isCorrectDirection = note.direction === direction;
+      console.log('Note:', note.direction, 'time:', note.time, 'diff:', timeDiff); // Debug timing
+      return isCorrectDirection && timeDiff < hitWindow;
+    });
     
     if (noteIndex !== -1) {
       console.log('Hit note!', direction); // Debug log
@@ -172,6 +175,7 @@ export default function RhythmGame({
 
       const elapsed = timestamp - startTimeRef.current
       const currentTime = elapsed / 1000
+      currentTimeRef.current = currentTime; // Update current time ref
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       
