@@ -18,6 +18,11 @@ interface Note {
   y: number
 }
 
+interface HitEffect {
+  direction: Direction
+  startTime: number
+}
+
 export default function RhythmGame({ 
   midiData, 
   mp3Url 
@@ -28,6 +33,7 @@ export default function RhythmGame({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [notes, setNotes] = useState<Note[]>([])
+  const [hitEffects, setHitEffects] = useState<HitEffect[]>([])
   const [isPlaying, setIsPlaying] = useState(false)
   const [score, setScore] = useState(0)
   const animationRef = useRef<number | null>(null)
@@ -71,15 +77,19 @@ export default function RhythmGame({
     const currentTime = (Date.now() - startTimeRef.current) / 1000;
     const hitWindow = 0.15; // 150ms window for hitting notes
     
+    const direction = ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS];
+    
     // Find the closest note for this key
     const noteIndex = notes.findIndex(note => 
-      ARROW_KEYS[e.keyCode as keyof typeof ARROW_KEYS] === note.direction &&
+      note.direction === direction &&
       Math.abs(note.time - currentTime) < hitWindow
     );
     
     if (noteIndex !== -1) {
       setScore(prev => prev + 100);
       setNotes(prev => prev.filter((_, i) => i !== noteIndex));
+      // Add hit effect
+      setHitEffects(prev => [...prev, { direction, startTime: Date.now() }]);
     }
   }, [isPlaying, notes]);
 
@@ -91,7 +101,7 @@ export default function RhythmGame({
     const ctx = canvas.getContext('2d')!
     const speed = 200 // pixels per second
 
-    function drawArrow(x: number, y: number, direction: Direction) {
+    function drawArrow(x: number, y: number, direction: Direction, glow = false) {
       ctx.save()
       ctx.translate(x, y)
       
@@ -110,12 +120,17 @@ export default function RhythmGame({
           break
       }
 
+      if (glow) {
+        ctx.shadowBlur = 20
+        ctx.shadowColor = '#fff'
+      }
+
       ctx.beginPath()
       ctx.moveTo(0, -15)
       ctx.lineTo(10, 0)
       ctx.lineTo(-10, 0)
       ctx.closePath()
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = glow ? '#ffff00' : '#fff'
       ctx.fill()
       ctx.restore()
     }
@@ -135,6 +150,7 @@ export default function RhythmGame({
       ctx.lineWidth = 2
       for (let i = 0; i < 4; i++) {
         const x = canvas.width * (0.3 + i * 0.15)
+        const direction = ['LEFT', 'UP', 'DOWN', 'RIGHT'][i] as Direction
         
         // Vertical guide line
         ctx.beginPath()
@@ -154,7 +170,19 @@ export default function RhythmGame({
         ctx.moveTo(x - 20, hitY)
         ctx.lineTo(x + 20, hitY)
         ctx.stroke()
+
+        // Draw hit effects
+        const effect = hitEffects.find(e => e.direction === direction);
+        if (effect) {
+          const age = Date.now() - effect.startTime;
+          if (age < 100) { // Effect lasts 100ms
+            drawArrow(x, hitY, direction, true);
+          }
+        }
       }
+      
+      // Clean up old hit effects
+      setHitEffects(prev => prev.filter(e => Date.now() - e.startTime < 100));
       
       // Reset style for notes
       ctx.strokeStyle = '#333'
@@ -163,7 +191,7 @@ export default function RhythmGame({
       // Update and draw notes
       setNotes(prev => prev.map(note => ({
         ...note,
-        y: ((note.time - currentTime) * speed) + canvas.height - 50
+        y: 50 + ((currentTime - note.time) * speed) // Notes fall from top
       })))
 
       notes.forEach(note => {
@@ -180,7 +208,7 @@ export default function RhythmGame({
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isPlaying, notes])
+  }, [isPlaying, notes, hitEffects])
 
   const handleStart = () => {
     setIsPlaying(true)
