@@ -52,13 +52,8 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
     async function loadMidi() {
       try {
         const response = await fetch(midiUrl)
-        const base64 = await response.text()
-        const binary = atob(base64)
-        const bytes = new Uint8Array(binary.length)
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i)
-        }
-        const midi = new Midi(bytes)
+        const arrayBuffer = await response.arrayBuffer()
+        const midi = new Midi(arrayBuffer)
         
         const midiNotes = midi.tracks[0].notes.map(note => ({
           time: note.time,
