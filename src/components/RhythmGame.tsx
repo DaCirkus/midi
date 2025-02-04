@@ -317,19 +317,28 @@ export default function RhythmGame({
       )}
 
       {/* Hit zones for click/touch input */}
-      <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '100px' }}>
-        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction, i) => (
-          <button
-            key={direction}
-            onClick={() => handleInput(direction as Direction)}
-            className="absolute w-[40px] h-[40px] pointer-events-auto 
-              bg-white/10 hover:bg-white/20 transition-colors rounded"
-            style={{
-              left: `calc(${30 + i * 15}% - 20px)`,
-              bottom: '30px'
-            }}
-          />
-        ))}
+      <div className="absolute inset-0 pointer-events-none">
+        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction, i) => {
+          const x = `${30 + i * 15}%`; // Match canvas x positions
+          return (
+            <button
+              key={direction}
+              onMouseDown={() => handleInput(direction as Direction)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleInput(direction as Direction);
+              }}
+              className="absolute w-[40px] h-[40px] pointer-events-auto 
+                bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors"
+              style={{
+                left: `calc(${x} - 20px)`,
+                bottom: '50px', // Match canvas hit zone position
+                transform: 'translateZ(0)', // Force GPU acceleration
+                WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   )
