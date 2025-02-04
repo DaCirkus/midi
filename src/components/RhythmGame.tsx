@@ -24,7 +24,7 @@ export default function RhythmGame({ midiUrl, mp3Url }: { midiUrl: string, mp3Ur
   const [notes, setNotes] = useState<Note[]>([])
   const [isPlaying, setIsPlaying] = useState(false)
   const [score, setScore] = useState(0)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
 
   // Load MIDI data
