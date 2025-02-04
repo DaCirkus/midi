@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadFile, createGame, STORAGE_BUCKETS } from '@/lib/supabase';
+import { uploadFile, createGame } from '@/lib/supabase';
 import { generateMidiFromAudio } from '@/lib/midiGenerator';
 
 export default function FileUpload() {
@@ -11,7 +11,6 @@ export default function FileUpload() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [midiUrl, setMidiUrl] = useState<string | null>(null);
-  const [gameId, setGameId] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,7 +29,7 @@ export default function FileUpload() {
     try {
       // Upload MP3 to Supabase
       setProgress(10);
-      const mp3Path = await uploadFile(mp3File, 'MP3');
+      await uploadFile(mp3File, 'MP3');
       setProgress(30);
 
       // Convert MP3 to AudioBuffer
@@ -61,7 +60,6 @@ export default function FileUpload() {
     setLoading(true);
     try {
       const game = await createGame(mp3File!.name, midiUrl);
-      setGameId(game.id);
       router.push(`/game?id=${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
