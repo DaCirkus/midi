@@ -45,13 +45,14 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   
   console.log('Uploading file:', fileName, 'type:', file.type)
   
-  // For MIDI files, ensure we're sending binary data
+  // For MIDI files, convert to base64 first
   if (bucket === 'MIDI') {
     const arrayBuffer = await file.arrayBuffer()
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS[bucket])
-      .upload(fileName, arrayBuffer, {
-        contentType: file.type,
+      .upload(fileName, base64, {
+        contentType: 'text/plain;base64',
         cacheControl: '3600',
         upsert: false
       })
