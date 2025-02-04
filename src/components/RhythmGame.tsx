@@ -309,21 +309,27 @@ export default function RhythmGame({
       />
       <audio ref={audioRef} src={mp3Url} />
       
-      {/* Score and Volume Controls */}
-      <div className="absolute top-4 right-4 bg-black/50 p-4 rounded space-y-2">
-        <div>Score: {score}</div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm">🔈</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="w-24"
-          />
-          <span className="text-sm">🔊</span>
+      {/* Game UI Container - centered in play area */}
+      <div className="absolute inset-0 flex flex-col items-center">
+        {/* Score and Volume Controls */}
+        <div className="bg-black/50 p-4 rounded space-y-4 mt-4 w-[300px] text-center">
+          <div className="text-xl">Score: {score}</div>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-lg">🔈</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="w-48"
+            />
+            <span className="text-lg">🔊</span>
+          </div>
+          <div className="text-sm text-gray-300">
+            Use arrow keys or WASD to play
+          </div>
         </div>
       </div>
       
@@ -338,25 +344,33 @@ export default function RhythmGame({
         </button>
       )}
 
-      {/* Mobile touch controls */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 flex justify-center gap-2 bg-black/50">
-        {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
-          <button
-            key={direction}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleInput(direction as Direction);
-            }}
-            onClick={() => handleInput(direction as Direction)}
-            className="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center
-              text-3xl active:bg-white/40 transition-colors"
-          >
-            {direction === 'LEFT' && '←'}
-            {direction === 'UP' && '↑'}
-            {direction === 'DOWN' && '↓'}
-            {direction === 'RIGHT' && '→'}
-          </button>
-        ))}
+      {/* Mobile touch controls - much bigger buttons */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 flex flex-col items-center bg-black/50">
+        {/* Instructions */}
+        <div className="text-center py-2 text-gray-300">
+          Tap arrows when notes align with the white lines
+        </div>
+        
+        {/* Buttons Container */}
+        <div className="w-full max-w-[500px] p-4 grid grid-cols-4 gap-2">
+          {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
+            <button
+              key={direction}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleInput(direction as Direction);
+              }}
+              onClick={() => handleInput(direction as Direction)}
+              className="aspect-square bg-white/20 rounded-2xl flex items-center justify-center
+                text-5xl active:bg-white/40 transition-colors"
+            >
+              {direction === 'LEFT' && '←'}
+              {direction === 'UP' && '↑'}
+              {direction === 'DOWN' && '↓'}
+              {direction === 'RIGHT' && '→'}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
