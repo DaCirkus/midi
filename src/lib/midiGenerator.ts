@@ -184,14 +184,19 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
               // Convert MIDI to binary format
               const midiData = midi.toArray();
               const midiBlob = new Blob([new Uint8Array(midiData)], { 
-                type: 'application/x-midi' 
+                type: 'audio/midi' 
               });
               
               // Verify MIDI format
               const reader = new FileReader();
               reader.onload = () => {
                 const arr = new Uint8Array(reader.result as ArrayBuffer);
-                console.log('MIDI header:', Array.from(arr.slice(0, 4)).map(b => String.fromCharCode(b)).join(''));
+                const header = Array.from(arr.slice(0, 4)).map(b => String.fromCharCode(b)).join('');
+                console.log('MIDI header:', header);
+                if (header !== 'MThd') {
+                  reject(new Error('Invalid MIDI header'));
+                  return;
+                }
               };
               reader.readAsArrayBuffer(midiBlob);
               

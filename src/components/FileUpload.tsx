@@ -74,7 +74,7 @@ export default function FileUpload() {
       
       // Convert midiBlob to File with correct MIME type
       const midiFile = new File([midiBlob], 'gameplay.mid', { 
-        type: 'application/x-midi'
+        type: 'audio/midi'
       });
       
       // Log MIDI file details for debugging
@@ -82,6 +82,16 @@ export default function FileUpload() {
         size: midiFile.size,
         type: midiFile.type
       });
+      
+      // Verify MIDI header before upload
+      const arrayBuffer = await midiFile.arrayBuffer();
+      const header = Array.from(new Uint8Array(arrayBuffer).slice(0, 4))
+        .map(b => String.fromCharCode(b))
+        .join('');
+      
+      if (header !== 'MThd') {
+        throw new Error('Invalid MIDI file format');
+      }
       
       const midiUrl = await uploadFile(midiFile, 'MIDI');
       
