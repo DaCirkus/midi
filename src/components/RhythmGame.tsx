@@ -508,27 +508,9 @@ export default function RhythmGame({
           <h2 className="text-3xl font-bold text-white">
             Ready to Play?
           </h2>
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
-              </div>
-              <span className="text-white/70">or</span>
-              <div className="flex items-center gap-2">
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white/70">or</span>
-              <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
-            </div>
-          </div>
+          <p className="text-white/70 text-lg">
+            ←↑↓→ or WASD or tap
+          </p>
         </div>
       )}
     </div>
