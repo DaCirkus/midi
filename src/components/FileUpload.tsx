@@ -96,14 +96,16 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="p-8">
+    <div className="h-full p-4 sm:p-8">
       {/* Upload Area */}
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="relative group cursor-pointer min-h-[300px] flex flex-col items-center justify-center
-          border-2 border-dashed border-white/20 rounded-xl hover:border-purple-400/50 
-          transition-colors duration-300"
+        className={`relative group cursor-pointer min-h-[300px] flex flex-col items-center justify-center
+          border-2 border-dashed rounded-xl transition-all duration-300
+          ${mp3File 
+            ? 'border-purple-400/50 bg-purple-500/10' 
+            : 'border-white/20 hover:border-purple-400/30 hover:bg-white/5'}`}
       >
         <input
           type="file"
@@ -118,20 +120,20 @@ export default function FileUpload() {
         >
           {mp3File ? (
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center 
-                justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-4xl">🎵</span>
+              <div className="w-24 h-24 mx-auto bg-purple-500/20 rounded-full flex items-center 
+                justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-5xl">🎵</span>
               </div>
-              <p className="text-2xl font-semibold text-purple-300 mb-2">{mp3File.name}</p>
+              <p className="text-2xl font-semibold text-purple-300 mb-3">{mp3File.name}</p>
               <p className="text-sm text-white/50">Click or drag to choose a different file</p>
             </div>
           ) : (
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center 
-                justify-center mb-4 group-hover:bg-purple-500/20 transition-colors duration-300">
-                <span className="text-4xl">📁</span>
+              <div className="w-24 h-24 mx-auto bg-white/10 rounded-full flex items-center 
+                justify-center mb-6 group-hover:bg-purple-500/20 transition-colors duration-300">
+                <span className="text-5xl">📁</span>
               </div>
-              <p className="text-2xl font-semibold text-white/90 mb-2">Drop your MP3 file here</p>
+              <p className="text-2xl font-semibold text-white/90 mb-3">Drop your MP3 file here</p>
               <p className="text-sm text-white/50">or click to browse</p>
             </div>
           )}
