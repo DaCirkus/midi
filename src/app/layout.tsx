@@ -18,9 +18,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} antialiased`}>
-      <body className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen">
-        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+    <html lang="en" className={`${inter.variable}`}>
+      <body className="bg-[#0A0118] text-white min-h-screen">
+        {/* Animated gradient background */}
+        <div className="fixed inset-0 bg-gradient-to-br from-[#0A0118] via-[#1A0B2E] to-[#2A0B4E] animate-gradient-slow" />
+        
+        {/* Grid overlay */}
+        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20" />
+        
+        {/* Glow effects */}
+        <div className="fixed inset-0">
+          <div className="absolute -inset-[10px] bg-[#6F2DC9] blur-[100px] opacity-20 animate-pulse-slow" />
+          <div className="absolute -inset-[10px] bg-[#2A0B4E] blur-[60px] opacity-30" />
+        </div>
+        
+        {/* Content */}
         <div className="relative">
           {children}
         </div>

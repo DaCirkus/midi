@@ -96,14 +96,14 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center">
-      {/* Upload Area - Takes up most of the space */}
+    <div className="p-8">
+      {/* Upload Area */}
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="w-[90%] h-[80%] flex items-center justify-center group relative border-2 border-dashed 
-          border-white/20 rounded-xl hover:border-purple-400/50 transition-colors duration-300 
-          cursor-pointer bg-white/5 hover:bg-white/10"
+        className="relative group cursor-pointer min-h-[300px] flex flex-col items-center justify-center
+          border-2 border-dashed border-white/20 rounded-xl hover:border-purple-400/50 
+          transition-colors duration-300"
       >
         <input
           type="file"
@@ -114,28 +114,25 @@ export default function FileUpload() {
         />
         <label 
           htmlFor="file-upload"
-          className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+          className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer"
         >
           {mp3File ? (
             <div className="text-center">
-              <div className="w-40 h-40 mx-auto bg-purple-400/20 rounded-full flex items-center justify-center mb-8">
-                <span className="text-7xl">🎵</span>
+              <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center 
+                justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-4xl">🎵</span>
               </div>
-              <div>
-                <p className="text-4xl font-semibold text-purple-300">{mp3File.name}</p>
-                <p className="text-2xl text-gray-400 mt-4">Click or drag to choose a different file</p>
-              </div>
+              <p className="text-2xl font-semibold text-purple-300 mb-2">{mp3File.name}</p>
+              <p className="text-sm text-white/50">Click or drag to choose a different file</p>
             </div>
           ) : (
             <div className="text-center">
-              <div className="w-40 h-40 mx-auto bg-white/10 rounded-full flex items-center justify-center mb-8
-                group-hover:bg-purple-400/20 transition-colors duration-300">
-                <span className="text-7xl">📁</span>
+              <div className="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center 
+                justify-center mb-4 group-hover:bg-purple-500/20 transition-colors duration-300">
+                <span className="text-4xl">📁</span>
               </div>
-              <div>
-                <p className="text-4xl font-semibold text-white/90">Drop your MP3 file here</p>
-                <p className="text-2xl text-gray-400 mt-4">or click to browse</p>
-              </div>
+              <p className="text-2xl font-semibold text-white/90 mb-2">Drop your MP3 file here</p>
+              <p className="text-sm text-white/50">or click to browse</p>
             </div>
           )}
         </label>
@@ -143,20 +140,21 @@ export default function FileUpload() {
 
       {/* Error Display */}
       {error && (
-        <div className="w-[90%] mt-4 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center">
+        <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 
+          text-center">
           {error}
         </div>
       )}
 
-      {/* Progress and Actions - At the bottom */}
-      <div className="w-[90%] mt-4 space-y-4">
+      {/* Progress and Actions */}
+      <div className="mt-6 space-y-4">
         {/* Generate MIDI Button */}
         {mp3File && !midiBlob && (
           <button
             onClick={handleGenerate}
             disabled={!mp3File || loading}
-            className="w-full px-8 py-6 bg-gradient-to-r from-purple-500 to-pink-500 
-              rounded-xl font-semibold text-2xl hover:from-purple-600 hover:to-pink-600 
+            className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
+              rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 
               disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
               hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5"
           >
@@ -167,13 +165,13 @@ export default function FileUpload() {
         {/* Progress Bar */}
         {loading && (
           <div className="space-y-2">
-            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-lg text-center text-gray-400">{progress}% Complete</p>
+            <p className="text-sm text-center text-white/50">{progress}% Complete</p>
           </div>
         )}
 
@@ -184,8 +182,8 @@ export default function FileUpload() {
             <a 
               href={URL.createObjectURL(midiBlob)}
               download="gameplay.mid"
-              className="block w-full px-8 py-6 bg-gradient-to-r from-green-500 to-emerald-500 
-                text-center rounded-xl font-semibold text-2xl hover:from-green-600 hover:to-emerald-600
+              className="block w-full p-4 bg-gradient-to-r from-green-500 to-emerald-500 
+                text-center rounded-xl font-semibold text-lg hover:from-green-600 hover:to-emerald-600
                 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 
                 transform hover:-translate-y-0.5"
             >
@@ -195,8 +193,8 @@ export default function FileUpload() {
             {/* Generate Game Button */}
             <button
               onClick={handleGenerateGame}
-              className="w-full px-8 py-6 bg-gradient-to-r from-purple-500 to-pink-500 
-                rounded-xl font-semibold text-2xl hover:from-purple-600 hover:to-pink-600
+              className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
+                rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600
                 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 
                 transform hover:-translate-y-0.5"
             >
