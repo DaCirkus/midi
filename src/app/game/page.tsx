@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import RhythmGame from '@/components/RhythmGame'
 import { useEffect, useState } from 'react'
 import { getGame, type GameData } from '@/lib/supabase'
-import Link from 'next/link'
 
 function LoadingState() {
   return (
@@ -24,13 +23,6 @@ function ErrorState({ message }: { message: string }) {
       <div className="max-w-md w-full p-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 text-center">
         <div className="w-16 h-16 mx-auto mb-4 text-4xl">⚠️</div>
         <h2 className="text-2xl font-bold text-red-400 mb-4">{message}</h2>
-        <Link 
-          href="/"
-          className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl 
-            font-medium transition-colors duration-200"
-        >
-          Back to Home
-        </Link>
       </div>
     </div>
   )
@@ -66,22 +58,6 @@ function GameContent() {
 
   return (
     <div className="container mx-auto min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
-      {/* Game header */}
-      <div className="w-full max-w-4xl flex items-center justify-between mb-8">
-        <Link 
-          href="/"
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 backdrop-blur-sm
-            border border-white/10 transition-colors duration-200 group"
-        >
-          <span className="mr-2">←</span>
-          <span className="text-white/70 group-hover:text-white">Back to Home</span>
-        </Link>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 
-          bg-clip-text text-transparent">
-          Rhythm Game
-        </h1>
-      </div>
-
       {/* Game container */}
       <div className="w-full max-w-4xl relative rounded-3xl overflow-hidden border border-white/10
         shadow-[0_0_50px_-12px] shadow-purple-500/30">

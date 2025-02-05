@@ -101,8 +101,8 @@ export default function FileUpload() {
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className={`relative group flex-1 flex flex-col items-center justify-center
-          border-3 border-dashed rounded-xl transition-all duration-300
+        className={`relative group h-full flex flex-col items-center justify-center
+          border-2 border-dashed rounded-xl transition-all duration-300
           ${mp3File 
             ? 'border-purple-400/50 bg-purple-500/10' 
             : 'border-white/20 hover:border-purple-400/30 hover:bg-white/5'}`}
@@ -119,22 +119,22 @@ export default function FileUpload() {
           className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
         >
           {mp3File ? (
-            <div className="text-center scale-110 transform transition-transform duration-300">
-              <div className="w-32 h-32 mx-auto bg-purple-500/20 rounded-full flex items-center 
-                justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-6xl">🎵</span>
+            <div className="text-center transform transition-transform duration-300">
+              <div className="w-20 h-20 mx-auto glass rounded-full flex items-center 
+                justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-4xl">🎵</span>
               </div>
-              <p className="text-3xl font-semibold text-purple-300 mb-4">{mp3File.name}</p>
-              <p className="text-base text-white/50">Click or drag to choose a different file</p>
+              <p className="text-xl font-semibold gradient-text mb-2">{mp3File.name}</p>
+              <p className="text-sm text-white/50">Click or drag to choose a different file</p>
             </div>
           ) : (
             <div className="text-center transform transition-transform duration-300 group-hover:scale-105">
-              <div className="w-32 h-32 mx-auto bg-white/10 rounded-full flex items-center 
-                justify-center mb-8 group-hover:bg-purple-500/20 transition-colors duration-300">
-                <span className="text-6xl">📁</span>
+              <div className="w-20 h-20 mx-auto glass rounded-full flex items-center 
+                justify-center mb-4 group-hover:bg-white/10 transition-colors duration-300">
+                <span className="text-4xl">📁</span>
               </div>
-              <p className="text-3xl font-semibold text-white/90 mb-4">Drop your MP3 file here</p>
-              <p className="text-base text-white/50">or click to browse</p>
+              <p className="text-xl font-semibold text-white/90 mb-2">Drop your MP3 file here</p>
+              <p className="text-sm text-white/50">or click to browse</p>
             </div>
           )}
         </label>
@@ -142,23 +142,26 @@ export default function FileUpload() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 
-          text-center">
+        <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 
+          text-center text-sm">
           {error}
         </div>
       )}
 
       {/* Progress and Actions */}
-      <div className="mt-6 space-y-4">
+      <div className="mt-4 space-y-3">
         {/* Generate MIDI Button */}
         {mp3File && !midiBlob && (
           <button
             onClick={handleGenerate}
             disabled={!mp3File || loading}
-            className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
-              rounded-xl font-semibold text-xl hover:from-purple-600 hover:to-pink-600 
-              disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
-              hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5"
+            className="w-full p-4 rounded-lg font-semibold text-lg
+              bg-gradient-to-r from-purple-500 to-pink-500 
+              shadow-lg shadow-purple-500/20
+              disabled:opacity-50 disabled:cursor-not-allowed 
+              transition-all duration-300
+              hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02] 
+              active:scale-[0.98]"
           >
             {loading ? 'Generating...' : 'Generate MIDI'}
           </button>
@@ -167,27 +170,29 @@ export default function FileUpload() {
         {/* Progress Bar */}
         {loading && (
           <div className="space-y-2">
-            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-2 glass rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-sm text-center text-white/50">{progress}% Complete</p>
+            <p className="text-xs text-center text-white/50">{progress}% Complete</p>
           </div>
         )}
 
         {/* MIDI Actions */}
         {midiBlob && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Download MIDI Button */}
             <a 
               href={URL.createObjectURL(midiBlob)}
               download="gameplay.mid"
-              className="block w-full p-4 bg-gradient-to-r from-green-500 to-emerald-500 
-                text-center rounded-xl font-semibold text-xl hover:from-green-600 hover:to-emerald-600
-                transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 
-                transform hover:-translate-y-0.5"
+              className="block w-full p-4 rounded-lg font-semibold text-lg
+                bg-gradient-to-r from-green-500 to-emerald-500 
+                shadow-lg shadow-emerald-500/20
+                text-center transition-all duration-300 
+                hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] 
+                active:scale-[0.98]"
             >
               Download MIDI
             </a>
@@ -195,10 +200,12 @@ export default function FileUpload() {
             {/* Generate Game Button */}
             <button
               onClick={handleGenerateGame}
-              className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
-                rounded-xl font-semibold text-xl hover:from-purple-600 hover:to-pink-600
-                transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 
-                transform hover:-translate-y-0.5"
+              className="w-full p-4 rounded-lg font-semibold text-lg
+                bg-gradient-to-r from-purple-500 to-pink-500 
+                shadow-lg shadow-purple-500/20
+                transition-all duration-300 
+                hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02] 
+                active:scale-[0.98]"
             >
               Create Game
             </button>

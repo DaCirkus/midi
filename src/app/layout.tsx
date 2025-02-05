@@ -19,19 +19,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-[#0A0118] text-white">
-        {/* Animated gradient background */}
-        <div className="fixed inset-0 bg-gradient-to-br from-[#0A0118] via-[#1A0B2E] to-[#2A0B4E] animate-gradient-slow" />
-        
-        {/* Grid overlay */}
-        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20" />
+      <body>
+        {/* Background layers */}
+        <div className="fixed inset-0 gradient-bg" />
+        <div className="fixed inset-0 grid-bg" />
         
         {/* Glow effects */}
-        <div className="fixed inset-0">
-          <div className="absolute -inset-[10px] bg-[#6F2DC9] blur-[100px] opacity-20 animate-pulse-slow" />
-          <div className="absolute -inset-[10px] bg-[#2A0B4E] blur-[60px] opacity-30" />
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="purple-glow top-0 left-1/4" />
+          <div className="purple-glow bottom-0 right-1/4" />
         </div>
-        
+
         {/* Content */}
         <main className="relative">
           {children}

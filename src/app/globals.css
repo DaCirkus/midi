@@ -7,26 +7,62 @@
   --foreground: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Base styles */
 body {
-  color: var(--foreground);
-  background: var(--background);
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
-  overflow-x: hidden;
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
 }
 
-@layer utilities {
-  .bg-grid {
-    background-size: 50px 50px;
-    background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  }
+/* Gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #0A0118 0%, #1A0B2E 50%, #2A0B4E 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #A855F7, #EC4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Grid background */
+.grid-bg {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Glow effects */
+.purple-glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: #6F2DC9;
+  filter: blur(100px);
+  opacity: 0.2;
+  border-radius: 100%;
+}
+
+/* Test style */
+.test-text {
+  color: #ff00ff !important;
+  font-size: 48px !important;
+  text-shadow: 0 0 10px #ff00ff !important;
 }
