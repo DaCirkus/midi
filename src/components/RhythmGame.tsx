@@ -489,28 +489,6 @@ export default function RhythmGame({
               <span className="text-lg opacity-80">🔊</span>
             </div>
           </div>
-
-          {/* Controls help */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-            <div className="bg-black/60 backdrop-blur-md p-4 rounded-xl
-              flex items-center gap-6 border border-white/10">
-              <div className="flex items-center gap-2">
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
-              </div>
-              <span className="text-white/70">or</span>
-              <div className="flex items-center gap-2">
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
-                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
-              </div>
-              <span className="text-white/70">or</span>
-              <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
-            </div>
-          </div>
         </>
       )}
 
@@ -530,22 +508,26 @@ export default function RhythmGame({
           <h2 className="text-3xl font-bold text-white">
             Ready to Play?
           </h2>
-          <div className="flex items-center gap-6 mt-2">
-            <div className="flex items-center gap-2">
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
+              </div>
+              <span className="text-white/70">or</span>
+              <div className="flex items-center gap-2">
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
+                <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
+              </div>
             </div>
-            <span className="text-white/70">or</span>
             <div className="flex items-center gap-2">
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
+              <span className="text-white/70">or</span>
+              <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
             </div>
-            <span className="text-white/70">or</span>
-            <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
           </div>
         </div>
       )}
