@@ -65,50 +65,46 @@ function GameContent() {
   if (!gameData) return <ErrorState message="Game not found" />
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
-        <div className="w-full max-w-6xl">
-          {/* Game header */}
-          <div className="flex items-center justify-between mb-8">
-            <Link 
-              href="/"
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 backdrop-blur-sm
-                border border-white/10 transition-colors duration-200 group"
-            >
-              <span className="mr-2">←</span>
-              <span className="text-white/70 group-hover:text-white">Back to Home</span>
-            </Link>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 
-              bg-clip-text text-transparent">
-              Rhythm Game
-            </h1>
-          </div>
+    <div className="container mx-auto min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
+      {/* Game header */}
+      <div className="w-full max-w-4xl flex items-center justify-between mb-8">
+        <Link 
+          href="/"
+          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 backdrop-blur-sm
+            border border-white/10 transition-colors duration-200 group"
+        >
+          <span className="mr-2">←</span>
+          <span className="text-white/70 group-hover:text-white">Back to Home</span>
+        </Link>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 
+          bg-clip-text text-transparent">
+          Rhythm Game
+        </h1>
+      </div>
 
-          {/* Game container */}
-          <div className="relative rounded-3xl overflow-hidden border border-white/10
-            shadow-[0_0_50px_-12px] shadow-purple-500/30">
-            <RhythmGame 
-              midiData={gameData.midi_data}
-              mp3Url={gameData.mp3_url}
-            />
-          </div>
+      {/* Game container */}
+      <div className="w-full max-w-4xl relative rounded-3xl overflow-hidden border border-white/10
+        shadow-[0_0_50px_-12px] shadow-purple-500/30">
+        <RhythmGame 
+          midiData={gameData.midi_data}
+          mp3Url={gameData.mp3_url}
+        />
+      </div>
 
-          {/* Controls help */}
-          <div className="mt-8 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10
-            text-center text-white/70">
-            <p className="text-lg mb-2">Controls</p>
-            <div className="flex justify-center gap-4">
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
-              <span className="mx-4">or</span>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
-              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
-            </div>
-          </div>
+      {/* Controls help */}
+      <div className="w-full max-w-4xl mt-8 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10
+        text-center text-white/70">
+        <p className="text-lg mb-2">Controls</p>
+        <div className="flex justify-center gap-4">
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
+          <span className="mx-4">or</span>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
+          <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
         </div>
       </div>
     </div>
