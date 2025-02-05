@@ -141,9 +141,20 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
               // Process collected features
               features = features.filter((f, i, arr) => {
                 if (i === 0 || i === arr.length - 1) return false;
+                
+                // Look at a wider window for better rhythm detection
                 const prevEnergy = arr[i - 1].energy;
                 const nextEnergy = arr[i + 1].energy;
-                return f.energy > prevEnergy * 1.2 && f.energy > nextEnergy * 1.2;
+                const localPeak = f.energy > prevEnergy * 1.1 && f.energy > nextEnergy * 1.1;
+                
+                // Check if it's a significant beat
+                const isSignificantBeat = f.rms > 0.2 || f.energy > avgEnergy * 1.3;
+                
+                // Check if it's on a rhythmic grid (assuming 4/4 time)
+                const beatTime = (detectedTempo / 60) * f.time;
+                const onGrid = Math.abs(Math.round(beatTime * 4) / 4 - beatTime) < 0.1;
+                
+                return (localPeak && isSignificantBeat) || (isSignificantBeat && onGrid);
               });
 
               onProgress?.(95); // Feature filtering complete
@@ -151,29 +162,67 @@ export async function generateMidiFromAudio(audioBuffer: AudioBuffer, onProgress
 
               // Sort by energy to get distribution
               const sortedEnergies = features.map(f => f.energy).sort((a, b) => b - a);
+              const energyPercentile90 = sortedEnergies[Math.floor(sortedEnergies.length * 0.9)];
               const energyPercentile75 = sortedEnergies[Math.floor(sortedEnergies.length * 0.75)];
+              const energyPercentile50 = sortedEnergies[Math.floor(sortedEnergies.length * 0.5)];
+              const energyPercentile25 = sortedEnergies[Math.floor(sortedEnergies.length * 0.25)];
 
               // Generate notes
               let noteCount = 0;
+              let lastDirection: number | null = null;
+              let lastBeatTime = -1;
+              
               features.forEach((f) => {
+                // Ensure minimum spacing between notes for playability
                 if (f.time - lastNoteTime >= minTimeBetweenNotes) {
-                  let direction;
+                  let direction: number;
                   const intensity = f.rms * f.energy;
                   
-                  if (f.energy > energyPercentile75) {
-                    direction = f.centroid > 4000 ? DIRECTIONS.UP : DIRECTIONS.DOWN;
+                  // Enhanced direction selection based on musical features
+                  if (f.energy > energyPercentile90) {
+                    // Super high energy moments - always UP
+                    direction = DIRECTIONS.UP;
+                  } else if (f.energy > energyPercentile75) {
+                    // High energy - prefer UP and RIGHT
+                    direction = Math.random() > 0.4 ? DIRECTIONS.UP : DIRECTIONS.RIGHT;
+                  } else if (f.energy > energyPercentile50) {
+                    // Medium-high energy - RIGHT or DOWN
+                    direction = Math.random() > 0.5 ? DIRECTIONS.RIGHT : DIRECTIONS.DOWN;
+                  } else if (f.energy > energyPercentile25) {
+                    // Medium-low energy - DOWN or LEFT
+                    direction = Math.random() > 0.5 ? DIRECTIONS.DOWN : DIRECTIONS.LEFT;
                   } else {
-                    direction = f.zcr > 50 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT;
+                    // Low energy - LEFT
+                    direction = DIRECTIONS.LEFT;
                   }
-
+                  
+                  // Avoid triple repeats of the same direction
+                  if (direction === lastDirection) {
+                    const alternatives = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT]
+                      .filter(d => d !== direction)
+                      // Prefer directions that make sense for the energy level
+                      .sort(() => Math.random() - 0.5);
+                    direction = alternatives[0];
+                  }
+                  
+                  // Calculate note timing relative to beat grid
+                  const beatTime = (detectedTempo / 60) * f.time;
+                  const quantizedBeatTime = Math.round(beatTime * 4) / 4;
+                  const adjustedTime = (quantizedBeatTime * 60) / detectedTempo;
+                  
+                  // Only slightly adjust timing to maintain natural feel
+                  const finalTime = Math.abs(f.time - adjustedTime) < 0.1 ? adjustedTime : f.time;
+                  
                   gameTrack.addNote({
                     midi: direction,
-                    time: f.time,
+                    time: finalTime,
                     duration: 0.1,
                     velocity: Math.min(intensity * 127, 127)
                   });
 
-                  lastNoteTime = f.time;
+                  lastDirection = direction;
+                  lastNoteTime = finalTime;
+                  lastBeatTime = quantizedBeatTime;
                   noteCount++;
                 }
               });
