@@ -32,6 +32,8 @@ export default function FileUpload() {
       setMidiBlob(null);
       setProgress(0);
       setError(null);
+    } else {
+      setError('Please upload an MP3 file');
     }
   };
 
@@ -46,12 +48,10 @@ export default function FileUpload() {
     setError(null);
     
     try {
-      // Convert MP3 to AudioBuffer
       const arrayBuffer = await mp3File.arrayBuffer();
       const audioContext = new AudioContext();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
-      // Generate MIDI with progress updates
       const midi = await generateMidiFromAudio(audioBuffer, (progress) => {
         setProgress(progress);
       });
@@ -70,10 +70,8 @@ export default function FileUpload() {
     setLoading(true);
     setError(null);
     try {
-      // Upload MP3 file
       const mp3Url = await uploadFile(mp3File, 'MP3');
       
-      // Convert MIDI blob to data
       const arrayBuffer = await midiBlob.arrayBuffer();
       const midi = new Midi(arrayBuffer);
       
@@ -87,7 +85,6 @@ export default function FileUpload() {
         tempo: midi.header.tempos[0]?.bpm || 120
       };
       
-      // Create game with MP3 URL and MIDI data
       const game = await createGame(mp3Url, midiData);
       router.push(`/game?id=${game.id}`);
     } catch (error) {
@@ -99,11 +96,14 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Upload Area */}
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors"
+        className="group relative border-2 border-dashed border-white/20 rounded-xl p-12
+          hover:border-purple-400/50 transition-colors duration-300 cursor-pointer
+          bg-white/5 hover:bg-white/10"
       >
         <input
           type="file"
@@ -114,68 +114,97 @@ export default function FileUpload() {
         />
         <label 
           htmlFor="file-upload"
-          className="cursor-pointer text-gray-600 hover:text-blue-500"
+          className="block text-center cursor-pointer"
         >
           {mp3File ? (
-            <div>
-              <p className="font-medium">{mp3File.name}</p>
-              <p className="text-sm text-gray-500">Click to choose a different file</p>
+            <div className="space-y-4">
+              <div className="w-16 h-16 mx-auto bg-purple-400/20 rounded-full flex items-center justify-center">
+                <span className="text-3xl">🎵</span>
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-purple-300">{mp3File.name}</p>
+                <p className="text-sm text-gray-400 mt-1">Click or drag to choose a different file</p>
+              </div>
             </div>
           ) : (
-            <div>
-              <p className="font-medium">Drop your MP3 file here</p>
-              <p className="text-sm text-gray-500">or click to browse</p>
+            <div className="space-y-4">
+              <div className="w-16 h-16 mx-auto bg-white/10 rounded-full flex items-center justify-center
+                group-hover:bg-purple-400/20 transition-colors duration-300">
+                <span className="text-3xl">📁</span>
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-white/90">Drop your MP3 file here</p>
+                <p className="text-sm text-gray-400 mt-1">or click to browse</p>
+              </div>
             </div>
           )}
         </label>
       </div>
       
+      {/* Error Display */}
       {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center">
           {error}
         </div>
       )}
 
-      <div className="space-y-2">
-        <button
-          onClick={handleGenerate}
-          disabled={!mp3File || loading}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-        >
-          {loading ? 'Generating...' : 'Generate MIDI'}
-        </button>
+      {/* Progress and Actions */}
+      <div className="space-y-4">
+        {/* Generate MIDI Button */}
+        {mp3File && !midiBlob && (
+          <button
+            onClick={handleGenerate}
+            disabled={!mp3File || loading}
+            className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 
+              rounded-lg font-semibold text-lg hover:from-purple-600 hover:to-pink-600 
+              disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
+              hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5"
+          >
+            {loading ? 'Generating...' : 'Generate MIDI'}
+          </button>
+        )}
 
+        {/* Progress Bar */}
         {loading && (
-          <div className="space-y-1">
-            <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="space-y-2">
+            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-sm text-gray-500 text-center">{progress}%</p>
+            <p className="text-sm text-center text-gray-400">{progress}% Complete</p>
+          </div>
+        )}
+
+        {/* MIDI Actions */}
+        {midiBlob && (
+          <div className="space-y-4">
+            {/* Download MIDI Button */}
+            <a 
+              href={URL.createObjectURL(midiBlob)}
+              download="gameplay.mid"
+              className="block w-full px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-500 
+                text-center rounded-lg font-semibold text-lg hover:from-green-600 hover:to-emerald-600
+                transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 
+                transform hover:-translate-y-0.5"
+            >
+              Download MIDI
+            </a>
+            
+            {/* Generate Game Button */}
+            <button
+              onClick={handleGenerateGame}
+              className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 
+                rounded-lg font-semibold text-lg hover:from-purple-600 hover:to-pink-600
+                transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 
+                transform hover:-translate-y-0.5"
+            >
+              Create Game
+            </button>
           </div>
         )}
       </div>
-
-      {midiBlob && (
-        <div className="space-y-4">
-          <a 
-            href={URL.createObjectURL(midiBlob)}
-            download="gameplay.mid"
-            className="block px-4 py-2 bg-green-500 text-white rounded text-center hover:bg-green-600"
-          >
-            Download MIDI
-          </a>
-          
-          <button
-            onClick={handleGenerateGame}
-            className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-          >
-            Generate Game
-          </button>
-        </div>
-      )}
     </div>
   );
 } 
