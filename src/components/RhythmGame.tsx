@@ -489,6 +489,24 @@ export default function RhythmGame({
               <span className="text-lg opacity-80">🔊</span>
             </div>
           </div>
+
+          {/* Controls help */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+            <div className="bg-black/60 backdrop-blur-md p-4 rounded-xl
+              flex items-center gap-4 border border-white/10">
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
+              <span className="mx-2 text-white/70">or</span>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
+              <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
+              <span className="mx-2 text-white/70">or</span>
+              <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
+            </div>
+          </div>
         </>
       )}
 
@@ -508,9 +526,19 @@ export default function RhythmGame({
           <h2 className="text-3xl font-bold text-white">
             Ready to Play?
           </h2>
-          <p className="text-white/70 text-lg">
-            ←↑↓→ or WASD or tap
-          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">←</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↑</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">↓</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">→</kbd>
+            <span className="mx-2 text-white/70">or</span>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">A</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">W</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">S</kbd>
+            <kbd className="px-3 py-1.5 bg-white/10 rounded-lg">D</kbd>
+            <span className="mx-2 text-white/70">or</span>
+            <span className="px-3 py-1.5 bg-white/10 rounded-lg">tap</span>
+          </div>
         </div>
       )}
     </div>
