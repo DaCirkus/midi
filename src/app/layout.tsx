@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <body className="bg-[#0A0118] text-white min-h-screen">
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen bg-[#0A0118] text-white">
         {/* Animated gradient background */}
         <div className="fixed inset-0 bg-gradient-to-br from-[#0A0118] via-[#1A0B2E] to-[#2A0B4E] animate-gradient-slow" />
         
@@ -33,9 +33,9 @@ export default function RootLayout({
         </div>
         
         {/* Content */}
-        <div className="relative">
+        <main className="relative">
           {children}
-        </div>
+        </main>
       </body>
     </html>
   )
