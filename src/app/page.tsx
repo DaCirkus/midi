@@ -2,9 +2,9 @@ import FileUpload from '@/components/FileUpload'
 
 export default function Home() {
   return (
-    <main className="min-h-screen w-full flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen w-full flex flex-col items-center justify-center p-8">
       {/* Hero Section - Smaller and at the top */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 max-w-2xl">
         <h1 className="text-4xl font-bold">
           <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 
             bg-clip-text text-transparent">
@@ -17,7 +17,7 @@ export default function Home() {
       </div>
       
       {/* Main Upload Area - Takes up most of the screen */}
-      <div className="w-full max-w-5xl aspect-[4/3] relative">
+      <div className="w-full max-w-4xl aspect-[4/3] relative mx-auto">
         {/* Glow Effect */}
         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl 
           blur-lg opacity-25 group-hover:opacity-40 transition duration-1000"></div>
@@ -30,7 +30,7 @@ export default function Home() {
       </div>
 
       {/* Features - Smaller and at the bottom */}
-      <div className="grid grid-cols-3 gap-4 mt-8 text-center max-w-4xl">
+      <div className="grid grid-cols-3 gap-6 mt-8 text-center w-full max-w-4xl mx-auto">
         {[
           {
             icon: '🎮',

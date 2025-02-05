@@ -96,13 +96,13 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col items-center justify-center">
       {/* Upload Area - Takes up most of the space */}
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="flex-1 flex items-center justify-center p-8 group relative border-2 border-dashed 
-          border-white/20 rounded-xl m-4 hover:border-purple-400/50 transition-colors duration-300 
+        className="w-[90%] h-[80%] flex items-center justify-center group relative border-2 border-dashed 
+          border-white/20 rounded-xl hover:border-purple-400/50 transition-colors duration-300 
           cursor-pointer bg-white/5 hover:bg-white/10"
       >
         <input
@@ -117,24 +117,24 @@ export default function FileUpload() {
           className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
         >
           {mp3File ? (
-            <div className="space-y-8">
-              <div className="w-32 h-32 mx-auto bg-purple-400/20 rounded-full flex items-center justify-center">
-                <span className="text-6xl">🎵</span>
+            <div className="text-center">
+              <div className="w-40 h-40 mx-auto bg-purple-400/20 rounded-full flex items-center justify-center mb-8">
+                <span className="text-7xl">🎵</span>
               </div>
               <div>
-                <p className="text-3xl font-semibold text-purple-300">{mp3File.name}</p>
-                <p className="text-xl text-gray-400 mt-4">Click or drag to choose a different file</p>
+                <p className="text-4xl font-semibold text-purple-300">{mp3File.name}</p>
+                <p className="text-2xl text-gray-400 mt-4">Click or drag to choose a different file</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="w-32 h-32 mx-auto bg-white/10 rounded-full flex items-center justify-center
+            <div className="text-center">
+              <div className="w-40 h-40 mx-auto bg-white/10 rounded-full flex items-center justify-center mb-8
                 group-hover:bg-purple-400/20 transition-colors duration-300">
-                <span className="text-6xl">📁</span>
+                <span className="text-7xl">📁</span>
               </div>
               <div>
-                <p className="text-3xl font-semibold text-white/90">Drop your MP3 file here</p>
-                <p className="text-xl text-gray-400 mt-4">or click to browse</p>
+                <p className="text-4xl font-semibold text-white/90">Drop your MP3 file here</p>
+                <p className="text-2xl text-gray-400 mt-4">or click to browse</p>
               </div>
             </div>
           )}
@@ -143,13 +143,13 @@ export default function FileUpload() {
 
       {/* Error Display */}
       {error && (
-        <div className="mx-4 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center">
+        <div className="w-[90%] mt-4 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center">
           {error}
         </div>
       )}
 
       {/* Progress and Actions - At the bottom */}
-      <div className="p-4 space-y-4">
+      <div className="w-[90%] mt-4 space-y-4">
         {/* Generate MIDI Button */}
         {mp3File && !midiBlob && (
           <button
