@@ -96,13 +96,13 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="h-full p-4 sm:p-8">
+    <div className="h-full w-full flex flex-col">
       {/* Upload Area */}
       <div 
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className={`relative group cursor-pointer min-h-[300px] flex flex-col items-center justify-center
-          border-2 border-dashed rounded-xl transition-all duration-300
+        className={`relative group flex-1 flex flex-col items-center justify-center
+          border-3 border-dashed rounded-xl transition-all duration-300
           ${mp3File 
             ? 'border-purple-400/50 bg-purple-500/10' 
             : 'border-white/20 hover:border-purple-400/30 hover:bg-white/5'}`}
@@ -116,25 +116,25 @@ export default function FileUpload() {
         />
         <label 
           htmlFor="file-upload"
-          className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer"
+          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
         >
           {mp3File ? (
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto bg-purple-500/20 rounded-full flex items-center 
-                justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-5xl">🎵</span>
+            <div className="text-center scale-110 transform transition-transform duration-300">
+              <div className="w-32 h-32 mx-auto bg-purple-500/20 rounded-full flex items-center 
+                justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-6xl">🎵</span>
               </div>
-              <p className="text-2xl font-semibold text-purple-300 mb-3">{mp3File.name}</p>
-              <p className="text-sm text-white/50">Click or drag to choose a different file</p>
+              <p className="text-3xl font-semibold text-purple-300 mb-4">{mp3File.name}</p>
+              <p className="text-base text-white/50">Click or drag to choose a different file</p>
             </div>
           ) : (
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto bg-white/10 rounded-full flex items-center 
-                justify-center mb-6 group-hover:bg-purple-500/20 transition-colors duration-300">
-                <span className="text-5xl">📁</span>
+            <div className="text-center transform transition-transform duration-300 group-hover:scale-105">
+              <div className="w-32 h-32 mx-auto bg-white/10 rounded-full flex items-center 
+                justify-center mb-8 group-hover:bg-purple-500/20 transition-colors duration-300">
+                <span className="text-6xl">📁</span>
               </div>
-              <p className="text-2xl font-semibold text-white/90 mb-3">Drop your MP3 file here</p>
-              <p className="text-sm text-white/50">or click to browse</p>
+              <p className="text-3xl font-semibold text-white/90 mb-4">Drop your MP3 file here</p>
+              <p className="text-base text-white/50">or click to browse</p>
             </div>
           )}
         </label>
@@ -156,7 +156,7 @@ export default function FileUpload() {
             onClick={handleGenerate}
             disabled={!mp3File || loading}
             className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
-              rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 
+              rounded-xl font-semibold text-xl hover:from-purple-600 hover:to-pink-600 
               disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
               hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5"
           >
@@ -167,7 +167,7 @@ export default function FileUpload() {
         {/* Progress Bar */}
         {loading && (
           <div className="space-y-2">
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
                 style={{ width: `${progress}%` }}
@@ -185,7 +185,7 @@ export default function FileUpload() {
               href={URL.createObjectURL(midiBlob)}
               download="gameplay.mid"
               className="block w-full p-4 bg-gradient-to-r from-green-500 to-emerald-500 
-                text-center rounded-xl font-semibold text-lg hover:from-green-600 hover:to-emerald-600
+                text-center rounded-xl font-semibold text-xl hover:from-green-600 hover:to-emerald-600
                 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 
                 transform hover:-translate-y-0.5"
             >
@@ -196,7 +196,7 @@ export default function FileUpload() {
             <button
               onClick={handleGenerateGame}
               className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 
-                rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600
+                rounded-xl font-semibold text-xl hover:from-purple-600 hover:to-pink-600
                 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 
                 transform hover:-translate-y-0.5"
             >
