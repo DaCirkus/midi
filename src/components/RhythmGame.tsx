@@ -302,70 +302,82 @@ export default function RhythmGame({
   }
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center">
-      <canvas
-        ref={canvasRef}
-        className="bg-gray-900 rounded-lg w-full"
-      />
-      <audio ref={audioRef} src={mp3Url} />
-      
-      {/* Game UI Container - centered in play area */}
-      <div className="absolute inset-0 flex flex-col items-center">
-        {/* Score and Volume Controls */}
-        <div className="bg-black/50 p-6 rounded-xl space-y-6 mt-8 w-[400px] text-center">
-          <div className="text-2xl font-bold">Score: {score}</div>
-          <div className="flex items-center justify-center gap-4">
-            <span className="text-2xl">🔈</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-64 h-2"
-            />
-            <span className="text-2xl">🔊</span>
+    <div className="min-h-screen w-full bg-gray-900 flex justify-center items-center p-4">
+      <div className="relative w-full max-w-4xl">
+        {/* Main game canvas */}
+        <div className="relative aspect-video bg-black/30 rounded-2xl overflow-hidden backdrop-blur-sm shadow-2xl">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full"
+          />
+          
+          {/* Game UI Container */}
+          <div className="absolute inset-0 flex flex-col items-center">
+            {/* Score and Volume Controls */}
+            <div className="bg-black/60 backdrop-blur-md p-8 rounded-2xl space-y-6 mt-8 w-[400px] 
+              text-center shadow-lg border border-white/10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 
+                bg-clip-text text-transparent">
+                Score: {score}
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-2xl opacity-80 hover:opacity-100 cursor-pointer">🔈</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="w-64 h-2 accent-purple-500"
+                />
+                <span className="text-2xl opacity-80 hover:opacity-100 cursor-pointer">🔊</span>
+              </div>
+              <div className="text-lg text-gray-300 font-medium">
+                Use arrow keys or WASD to play
+              </div>
+            </div>
           </div>
-          <div className="text-lg text-gray-300">
-            Use arrow keys or WASD to play
-          </div>
-        </div>
-      </div>
-      
-      {!isPlaying && (
-        <button
-          onClick={handleStart}
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-            px-12 py-6 bg-purple-500 text-white rounded-xl text-2xl font-bold
-            hover:bg-purple-600 transition-colors"
-        >
-          Start Game
-        </button>
-      )}
 
-      {/* Mobile touch controls - much bigger buttons */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-black/50">
-        <div className="container mx-auto px-4 pb-8 pt-4">
-          {/* Buttons Container */}
-          <div className="grid grid-cols-4 gap-4 max-w-3xl mx-auto">
-            {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
+          {/* Start button */}
+          {!isPlaying && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
               <button
-                key={direction}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  handleInput(direction as Direction);
-                }}
-                onClick={() => handleInput(direction as Direction)}
-                className="aspect-square bg-white/20 rounded-3xl flex items-center justify-center
-                  text-8xl active:bg-white/40 transition-colors min-h-[120px]"
+                onClick={handleStart}
+                className="px-16 py-8 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl 
+                  text-3xl font-bold hover:from-purple-600 hover:to-pink-600 transition-all duration-300
+                  shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1 transform"
               >
-                {direction === 'LEFT' && '←'}
-                {direction === 'UP' && '↑'}
-                {direction === 'DOWN' && '↓'}
-                {direction === 'RIGHT' && '→'}
+                Start Game
               </button>
-            ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile touch controls */}
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-md border-t border-white/10">
+          <div className="container mx-auto px-4 pb-8 pt-4">
+            <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
+              {['LEFT', 'UP', 'DOWN', 'RIGHT'].map((direction) => (
+                <button
+                  key={direction}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleInput(direction as Direction);
+                  }}
+                  onClick={() => handleInput(direction as Direction)}
+                  className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 
+                    rounded-3xl flex items-center justify-center text-8xl active:scale-95
+                    border border-white/10 shadow-lg transition-all duration-150
+                    min-h-[150px] hover:from-purple-500/30 hover:to-pink-500/30"
+                >
+                  {direction === 'LEFT' && '←'}
+                  {direction === 'UP' && '↑'}
+                  {direction === 'DOWN' && '↓'}
+                  {direction === 'RIGHT' && '→'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
