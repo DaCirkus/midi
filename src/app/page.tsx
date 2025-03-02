@@ -1,56 +1,55 @@
+'use client';
+
 import FileUpload from '@/components/FileUpload'
 
 export default function Home() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6">
-      <div className="w-full max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8 max-w-screen-md">
         {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-5xl font-bold gradient-text mb-4">
-            MP3 to Rhythm Game Generator
+        <header className="text-center mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+            MP3 to Rhythm Game
           </h1>
-          <p className="text-xl text-white/70">
-            Transform your song into a shareable rhythm game
+          <p className="text-sm text-gray-400">
+            Transform your music into a playable rhythm game
           </p>
-        </div>
+        </header>
 
-        {/* Upload Box */}
-        <div className="mb-12">
-          <div className="aspect-[16/9] w-full glass rounded-2xl p-8">
+        {/* Main Content */}
+        <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          {/* Upload Box */}
+          <div className="p-4 md:p-6 md:mx-auto md:max-w-[500px] lg:max-w-[600px]">
             <FileUpload />
           </div>
-        </div>
-
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {[
-            {
-              icon: '🎵',
-              text: 'Upload any MP3 File'
-            },
-            {
-              icon: '🎮',
-              text: 'Generate a Game'
-            },
-            {
-              icon: '⌨️',
-              text: 'Play with WASD or Arrow Keys'
-            },
-            {
-              icon: '🔗',
-              text: 'Share with friends'
-            }
-          ].map((feature) => (
-            <div 
-              key={feature.text}
-              className="glass flex flex-col items-center p-6 rounded-xl"
-            >
-              <span className="text-4xl mb-4">{feature.icon}</span>
-              <span className="text-lg font-medium text-white/70">{feature.text}</span>
+          
+          {/* Features */}
+          <div className="bg-gray-850 border-t border-gray-700 p-4">
+            <h2 className="text-sm font-medium mb-3 text-gray-300">Features</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { icon: '🎵', text: 'Upload MP3' },
+                { icon: '🎮', text: 'Generate Game' },
+                { icon: '⌨️', text: 'Play with Keys' },
+                { icon: '🔗', text: 'Share' }
+              ].map((feature) => (
+                <div 
+                  key={feature.text}
+                  className="bg-gray-800 p-2 rounded flex items-center gap-2"
+                >
+                  <span className="text-xs">{feature.icon}</span>
+                  <span className="text-xs">{feature.text}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
+        
+        {/* Footer */}
+        <footer className="mt-6 text-center text-xs text-gray-500">
+          <p>Create and share rhythm games from your favorite music</p>
+        </footer>
       </div>
-    </div>
+    </main>
   )
 }

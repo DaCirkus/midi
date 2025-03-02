@@ -21,6 +21,8 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: "#239063",
+        "primary-dark": "#1c7550",
       },
       animation: {
         'gradient-slow': 'gradient 15s ease infinite',
@@ -37,6 +39,9 @@ export default {
             'background-position': 'right center'
           },
         },
+      },
+      dropShadow: {
+        'glow': '0 0 10px rgba(255, 255, 255, 0.8)',
       },
     },
   },

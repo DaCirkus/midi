@@ -10,8 +10,8 @@ function LoadingState() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center">
       <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 text-center">
-        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-xl font-medium text-purple-200">Loading game...</p>
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-xl font-medium text-primary-200">Loading game...</p>
       </div>
     </div>
   )
@@ -60,10 +60,11 @@ function GameContent() {
     <div className="container mx-auto min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
       {/* Game container */}
       <div className="w-full max-w-4xl relative rounded-3xl overflow-hidden border border-white/10
-        shadow-[0_0_50px_-12px] shadow-purple-500/30">
+        shadow-[0_0_50px_-12px] shadow-primary/30">
         <RhythmGame 
           midiData={gameData.midi_data}
           mp3Url={gameData.mp3_url}
+          visualCustomization={gameData.visual_customization}
         />
       </div>
 

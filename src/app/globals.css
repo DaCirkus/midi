@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: #0A0118;
+  --background: #000000;
   --foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-dark: #e0e0e0;
 }
 
 /* Base styles */
@@ -19,11 +21,11 @@ body {
 
 /* Gradient backgrounds */
 .gradient-bg {
-  background: linear-gradient(135deg, #0A0118 0%, #1A0B2E 50%, #2A0B4E 100%);
+  background: linear-gradient(135deg, #000000 0%, #0f3828 50%, #239063 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(to right, #A855F7, #EC4899);
+  background: linear-gradient(to right, #ffffff, #e0e0e0);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -50,19 +52,19 @@ body {
 }
 
 /* Glow effects */
-.purple-glow {
+.green-glow {
   position: absolute;
-  width: 200px;
-  height: 200px;
-  background: #6F2DC9;
-  filter: blur(100px);
-  opacity: 0.2;
+  width: 80px;
+  height: 80px;
+  background: #ffffff;
+  filter: blur(60px);
+  opacity: 0.1;
   border-radius: 100%;
 }
 
 /* Test style */
 .test-text {
-  color: #ff00ff !important;
+  color: #ffffff !important;
   font-size: 48px !important;
-  text-shadow: 0 0 10px #ff00ff !important;
+  text-shadow: 0 0 10px #ffffff !important;
 }

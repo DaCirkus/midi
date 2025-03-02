@@ -21,13 +21,13 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body>
         {/* Background layers */}
-        <div className="fixed inset-0 gradient-bg" />
+        <div className="fixed inset-0" style={{ background: 'linear-gradient(135deg, #000000 0%, #0f3828 50%, #239063 100%)' }} />
         <div className="fixed inset-0 grid-bg" />
         
         {/* Glow effects */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="purple-glow top-0 left-1/4" />
-          <div className="purple-glow bottom-0 right-1/4" />
+          <div className="green-glow top-20 left-1/4" />
+          <div className="green-glow bottom-20 right-1/4" />
         </div>
 
         {/* Content */}

@@ -22,6 +22,49 @@ export interface GameData {
     }>
     tempo: number
   }
+  visual_customization?: {
+    background: {
+      type: 'color' | 'gradient' | 'image' | 'pattern'
+      color?: string
+      gradientColors?: string[]
+      gradientDirection?: string
+      imageUrl?: string
+      pattern?: 'dots' | 'stripes' | 'grid' | 'waves' | 'circuit'
+      patternColor?: string
+    }
+    notes: {
+      shape: 'arrow' | 'circle' | 'square' | 'rectangle' | 'guitar_pick' | 'custom' | 'triangle' | 'diamond' | 'star'
+      size: number
+      colors: {
+        LEFT: string
+        RIGHT: string
+        UP: string
+        DOWN: string
+      }
+      opacity: number
+      glow: boolean
+      arrowColor?: 'black' | 'white'
+    }
+    hitEffects: {
+      style: 'explosion' | 'ripple' | 'flash' | 'particles' | 'starburst' | 'pulse' | 'glow' | 'none'
+      color: string
+      size: number
+      duration: number
+    }
+    missEffects: {
+      style: 'shake' | 'fade' | 'flash' | 'blur' | 'shatter' | 'shrink' | 'none'
+      color: string
+    }
+    lanes: {
+      color: string
+      width: number
+      glow: boolean
+    }
+    ui: {
+      theme: 'default' | 'minimal' | 'retro' | 'futuristic'
+      fontFamily: string
+    }
+  }
   created_at: string
 }
 
@@ -72,15 +115,26 @@ export async function uploadFile(file: File, bucket: keyof typeof STORAGE_BUCKET
   return publicUrl
 }
 
-export async function createGame(mp3Url: string, midiData: GameData['midi_data']) {
+export async function createGame(
+  mp3Url: string, 
+  midiData: GameData['midi_data'],
+  visualCustomization?: GameData['visual_customization']
+) {
+  console.log('createGame visualCustomization:', visualCustomization);
+  
   const { data, error } = await supabase
     .from(TABLES.GAMES)
-    .insert([{ mp3_url: mp3Url, midi_data: midiData }])
+    .insert([{ 
+      mp3_url: mp3Url, 
+      midi_data: midiData,
+      visual_customization: visualCustomization 
+    }])
     .select()
     .single()
   
-  if (error) throw error
-  return data
+  if (error) throw error;
+  console.log('createGame response data:', data);
+  return data;
 }
 
 export async function getGame(id: string) {
@@ -90,6 +144,7 @@ export async function getGame(id: string) {
     .eq('id', id)
     .single()
   
-  if (error) throw error
-  return data
+  if (error) throw error;
+  console.log('getGame response data:', data);
+  return data;
 } 

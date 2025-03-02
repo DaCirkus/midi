@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadFile, createGame } from '@/lib/supabase';
+import { uploadFile, createGame, GameData } from '@/lib/supabase';
 import { generateMidiFromAudio } from '@/lib/midiGenerator';
 import { Midi } from '@tonejs/midi';
+import GameCustomization from './GameCustomization';
 
 export default function FileUpload() {
   const router = useRouter();
@@ -13,6 +14,9 @@ export default function FileUpload() {
   const [progress, setProgress] = useState(0);
   const [midiBlob, setMidiBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [visualCustomization, setVisualCustomization] = useState<NonNullable<GameData['visual_customization']> | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -21,24 +25,45 @@ export default function FileUpload() {
       setMidiBlob(null);
       setProgress(0);
       setError(null);
+    } else if (file) {
+      setError('Please upload an MP3 file');
     }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type === 'audio/mpeg') {
-      setMp3File(file);
-      setMidiBlob(null);
-      setProgress(0);
-      setError(null);
-    } else {
-      setError('Please upload an MP3 file');
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      
+      if (file && file.type === 'audio/mpeg') {
+        setMp3File(file);
+        setMidiBlob(null);
+        setProgress(0);
+        setError(null);
+      } else {
+        setError('Please upload an MP3 file');
+      }
     }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
   };
 
   const handleGenerate = async () => {
@@ -53,16 +78,26 @@ export default function FileUpload() {
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
       const midi = await generateMidiFromAudio(audioBuffer, (progress) => {
-        setProgress(progress);
+        setProgress(Math.min(progress, 0.99));
       });
       
+      setProgress(1.0);
       setMidiBlob(midi);
+      setShowCustomization(true);
     } catch (error) {
       console.error('Generation failed:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate MIDI');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCustomizationChange = (customization: NonNullable<GameData['visual_customization']>) => {
+    setVisualCustomization(customization);
+  };
+
+  const handleCustomizationComplete = () => {
+    handleGenerateGame();
   };
 
   const handleGenerateGame = async () => {
@@ -85,7 +120,7 @@ export default function FileUpload() {
         tempo: midi.header.tempos[0]?.bpm || 120
       };
       
-      const game = await createGame(mp3Url, midiData);
+      const game = await createGame(mp3Url, midiData, visualCustomization || undefined);
       router.push(`/game?id=${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
@@ -95,123 +130,113 @@ export default function FileUpload() {
     }
   };
 
-  return (
-    <div className="h-full w-full flex flex-col">
-      {/* Upload Area */}
-      <div 
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className={`relative group h-full flex flex-col items-center justify-center
-          border-2 border-dashed rounded-xl transition-all duration-300
-          ${mp3File 
-            ? 'border-purple-400/50 bg-purple-500/10' 
-            : 'border-white/20 hover:border-purple-400/30 hover:bg-white/5'}`}
-      >
-        <input
-          type="file"
-          accept=".mp3"
-          onChange={handleFileChange}
-          className="hidden"
-          id="file-upload"
+  // If showing customization, render the customization component
+  if (showCustomization && midiBlob) {
+    return (
+      <div className="w-full">
+        <GameCustomization 
+          onCustomizationChange={handleCustomizationChange}
+          onComplete={handleCustomizationComplete}
         />
-        <label 
-          htmlFor="file-upload"
-          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-        >
-          {mp3File ? (
-            <div className="text-center transform transition-transform duration-300">
-              <div className="w-20 h-20 mx-auto glass rounded-full flex items-center 
-                justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-4xl">🎵</span>
-              </div>
-              <p className="text-xl font-semibold gradient-text mb-2">{mp3File.name}</p>
-              <p className="text-sm text-white/50">Click or drag to choose a different file</p>
-            </div>
-          ) : (
-            <div className="text-center transform transition-transform duration-300 group-hover:scale-105">
-              <div className="w-20 h-20 mx-auto glass rounded-full flex items-center 
-                justify-center mb-4 group-hover:bg-white/10 transition-colors duration-300">
-                <span className="text-4xl">📁</span>
-              </div>
-              <p className="text-xl font-semibold text-white/90 mb-2">Drop your MP3 file here</p>
-              <p className="text-sm text-white/50">or click to browse</p>
-            </div>
-          )}
-        </label>
       </div>
+    );
+  }
 
-      {/* Error Display */}
+  return (
+    <div className="w-full max-w-md mx-auto">
+      {/* Step 1: Upload MP3 */}
+      <div className="mb-3">
+        <h2 className="text-sm font-medium mb-1">Step 1: Upload your MP3</h2>
+        
+        {/* Upload Area with Drag & Drop */}
+        <div 
+          className={`border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600'} 
+            rounded bg-gray-800 p-4 cursor-pointer transition-colors`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onClick={() => document.getElementById('file-upload')?.click()}
+        >
+          <div className="flex items-center">
+            {/* Much larger music note icon with project color */}
+            <div className="w-20 h-20 mr-4 flex-none text-[#ffffff]">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M55 15L55 50C55 55.5228 50.5228 60 45 60C39.4772 60 35 55.5228 35 50C35 44.4772 39.4772 40 45 40C47 40 49 40.5 50 41.5L50 20L30 25L30 55C30 60.5228 25.5228 65 20 65C14.4772 65 10 60.5228 10 55C10 49.4772 14.4772 45 20 45C22 45 24 45.5 25 46.5L25 20L55 15Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-300 truncate">
+                {mp3File ? mp3File.name : 'Drag & drop or click to upload'}
+              </p>
+              <p className="text-xs text-gray-500">MP3 files only</p>
+            </div>
+            
+            <input 
+              id="file-upload"
+              type="file" 
+              accept="audio/mpeg" 
+              className="hidden" 
+              onChange={handleFileChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Error Message */}
       {error && (
-        <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 
-          text-center text-sm">
+        <div className="mb-3 p-2 bg-red-900/30 border border-red-900 rounded text-red-200 text-xs">
           {error}
         </div>
       )}
-
-      {/* Progress and Actions */}
-      <div className="mt-4 space-y-3">
-        {/* Generate MIDI Button */}
-        {mp3File && !midiBlob && (
+      
+      {/* Generate Button */}
+      {mp3File && !midiBlob && (
+        <div className="mb-3">
+          <h2 className="text-sm font-medium mb-1">Step 2: Generate MIDI</h2>
           <button
+            className="w-full py-1.5 bg-[#239063] hover:bg-[#1c7550] text-white rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleGenerate}
-            disabled={!mp3File || loading}
-            className="w-full p-4 rounded-lg font-semibold text-lg
-              bg-gradient-to-r from-purple-500 to-pink-500 
-              shadow-lg shadow-purple-500/20
-              disabled:opacity-50 disabled:cursor-not-allowed 
-              transition-all duration-300
-              hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02] 
-              active:scale-[0.98]"
+            disabled={loading}
           >
-            {loading ? 'Generating...' : 'Generate MIDI'}
+            {loading ? 'Processing...' : 'Generate Rhythm Game'}
           </button>
-        )}
-
-        {/* Progress Bar */}
-        {loading && (
-          <div className="space-y-2">
-            <div className="h-2 glass rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
+          
+          {/* Progress Bar */}
+          {loading && (
+            <div className="mt-2">
+              <div className="w-full bg-gray-700 rounded-full h-1">
+                <div
+                  className="bg-[#239063] h-1 rounded-full transition-all duration-300"
+                  style={{ width: `${progress * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-gray-400 text-xs mt-0.5">
+                {`${Math.min(Math.round(progress * 100), 100)}% complete`}
+              </p>
             </div>
-            <p className="text-xs text-center text-white/50">{progress}% Complete</p>
+          )}
+        </div>
+      )}
+      
+      {/* MIDI Generated */}
+      {midiBlob && !showCustomization && (
+        <div className="mb-3">
+          <h2 className="text-sm font-medium mb-1">Step 3: Customize & Create</h2>
+          <div className="p-2 bg-[#239063]/20 border border-[#239063] rounded text-[#a3e6c5] text-xs mb-2">
+            MIDI successfully generated!
           </div>
-        )}
-
-        {/* MIDI Actions */}
-        {midiBlob && (
-          <div className="space-y-3">
-            {/* Download MIDI Button */}
-            <a 
-              href={URL.createObjectURL(midiBlob)}
-              download="gameplay.mid"
-              className="block w-full p-4 rounded-lg font-semibold text-lg
-                bg-gradient-to-r from-green-500 to-emerald-500 
-                shadow-lg shadow-emerald-500/20
-                text-center transition-all duration-300 
-                hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] 
-                active:scale-[0.98]"
-            >
-              Download MIDI
-            </a>
-            
-            {/* Generate Game Button */}
-            <button
-              onClick={handleGenerateGame}
-              className="w-full p-4 rounded-lg font-semibold text-lg
-                bg-gradient-to-r from-purple-500 to-pink-500 
-                shadow-lg shadow-purple-500/20
-                transition-all duration-300 
-                hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02] 
-                active:scale-[0.98]"
-            >
-              Create Game
-            </button>
-          </div>
-        )}
-      </div>
+          
+          <button
+            className="w-full py-1.5 bg-[#239063] hover:bg-[#1c7550] text-white rounded text-xs font-medium transition-colors"
+            onClick={() => setShowCustomization(true)}
+          >
+            Continue to Customization
+          </button>
+        </div>
+      )}
     </div>
   );
 } 
