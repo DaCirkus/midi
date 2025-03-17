@@ -33,6 +33,7 @@ function GameContent() {
   const gameId = searchParams.get('id')
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadGame() {
@@ -42,9 +43,40 @@ function GameContent() {
       }
       try {
         const data = await getGame(gameId)
+        
+        // Validate required game data
+        if (!data) {
+          throw new Error('Game not found');
+        }
+        
+        if (!data.midi_data || !data.mp3_url) {
+          throw new Error('Game data is incomplete');
+        }
+        
+        // Validate MIDI data structure
+        if (!Array.isArray(data.midi_data.notes) || !data.midi_data.tempo) {
+          throw new Error('Invalid MIDI data structure');
+        }
+        
+        // Validate visual customization if present
+        if (data.visual_customization) {
+          // If using image background, ensure the URL is valid
+          if (data.visual_customization.background.type === 'image') {
+            try {
+              new URL(data.visual_customization.background.imageUrl || '');
+            } catch (e) {
+              // Fix the data by changing to a color background
+              console.warn('Invalid image URL in game data, falling back to color background');
+              data.visual_customization.background.type = 'color';
+              data.visual_customization.background.color = '#1a1a2e';
+            }
+          }
+        }
+        
         setGameData(data)
       } catch (error) {
         console.error('Failed to load game:', error)
+        setError(error instanceof Error ? error.message : 'Failed to load game')
       } finally {
         setLoading(false)
       }
@@ -54,6 +86,7 @@ function GameContent() {
 
   if (loading) return <LoadingState />
   if (!gameId) return <ErrorState message="No game ID provided" />
+  if (error) return <ErrorState message={error} />
   if (!gameData) return <ErrorState message="Game not found" />
 
   return (

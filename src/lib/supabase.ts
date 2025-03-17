@@ -122,12 +122,54 @@ export async function createGame(
 ) {
   console.log('createGame visualCustomization:', visualCustomization);
   
+  // Sanitize visual customization data to prevent server errors
+  let sanitizedCustomization = visualCustomization;
+  
+  if (visualCustomization) {
+    // Create a deep copy to avoid mutating the original
+    sanitizedCustomization = JSON.parse(JSON.stringify(visualCustomization)) as typeof visualCustomization;
+    
+    // Handle image background
+    if (sanitizedCustomization?.background.type === 'image') {
+      let useColorFallback = false;
+      
+      try {
+        // Check if imageUrl exists
+        if (!sanitizedCustomization.background.imageUrl || 
+            sanitizedCustomization.background.imageUrl.trim() === '') {
+          console.warn('Image URL is empty, falling back to color background');
+          useColorFallback = true;
+        } else {
+          // Validate image URL
+          const url = new URL(sanitizedCustomization.background.imageUrl);
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+            // Invalid protocol
+            console.warn('Invalid image URL protocol, falling back to color background');
+            useColorFallback = true;
+          }
+        }
+      } catch (error) {
+        // Malformed URL
+        console.warn('Malformed image URL, falling back to color background');
+        useColorFallback = true;
+      }
+      
+      // Apply fallback if needed
+      if (useColorFallback && sanitizedCustomization) {
+        sanitizedCustomization.background = {
+          type: 'color',
+          color: '#1a1a2e'
+        };
+      }
+    }
+  }
+  
   const { data, error } = await supabase
     .from(TABLES.GAMES)
     .insert([{ 
       mp3_url: mp3Url, 
       midi_data: midiData,
-      visual_customization: visualCustomization 
+      visual_customization: sanitizedCustomization 
     }])
     .select()
     .single()
@@ -138,13 +180,53 @@ export async function createGame(
 }
 
 export async function getGame(id: string) {
-  const { data, error } = await supabase
-    .from(TABLES.GAMES)
-    .select()
-    .eq('id', id)
-    .single()
-  
-  if (error) throw error;
-  console.log('getGame response data:', data);
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.GAMES)
+      .select()
+      .eq('id', id)
+      .single()
+    
+    if (error) {
+      console.error('Supabase error in getGame:', error);
+      throw new Error(`Failed to retrieve game: ${error.message}`);
+    }
+    
+    if (!data) {
+      throw new Error('Game not found');
+    }
+    
+    // Validate and sanitize the game data
+    if (!data.midi_data || !data.mp3_url) {
+      throw new Error('Game data is incomplete');
+    }
+    
+    // Sanitize visual customization if present
+    if (data.visual_customization) {
+      // Handle image background
+      if (data.visual_customization.background.type === 'image') {
+        try {
+          // Validate image URL
+          const url = new URL(data.visual_customization.background.imageUrl || '');
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+            // Fall back to color background if URL protocol is invalid
+            console.warn('Invalid image URL protocol in getGame, falling back to color background');
+            data.visual_customization.background.type = 'color';
+            data.visual_customization.background.color = '#1a1a2e';
+          }
+        } catch (error) {
+          // Fall back to color background if URL is malformed
+          console.warn('Malformed image URL in getGame, falling back to color background');
+          data.visual_customization.background.type = 'color';
+          data.visual_customization.background.color = '#1a1a2e';
+        }
+      }
+    }
+    
+    console.log('getGame response data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in getGame:', error);
+    throw error;
+  }
 } 

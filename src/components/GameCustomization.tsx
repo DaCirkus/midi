@@ -43,6 +43,30 @@ const defaultCustomization: NonNullable<GameData['visual_customization']> = {
   },
 };
 
+// Helper function to validate image URLs
+function isValidImageUrl(url: string) {
+  if (!url) return false;
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+// Helper to check if a URL is CORS-enabled
+function checkImageCors(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    // Set a timeout in case the image takes too long to load
+    setTimeout(() => resolve(false), 5000);
+  });
+}
+
 interface GameCustomizationProps {
   onCustomizationChange: (customization: NonNullable<GameData['visual_customization']>) => void;
   onComplete: () => void;
@@ -55,11 +79,38 @@ export default function GameCustomization({
   const [customization, setCustomization] = useState<NonNullable<GameData['visual_customization']>>(defaultCustomization);
   const [activeTab, setActiveTab] = useState<'background' | 'notes' | 'effects'>('background');
   const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   // Notify parent component of changes when customization changes
   useEffect(() => {
     onCustomizationChange(customization);
   }, [customization, onCustomizationChange]);
+
+  // Validate image URL when it changes
+  useEffect(() => {
+    if (customization.background.type === 'image' && customization.background.imageUrl) {
+      if (!isValidImageUrl(customization.background.imageUrl)) {
+        setImageError(true);
+        console.warn('Invalid image URL format:', customization.background.imageUrl);
+        return;
+      }
+      
+      // Test if image can be loaded
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // Try with CORS enabled
+      img.onload = () => {
+        console.log('Image loaded successfully:', customization.background.imageUrl);
+        setImageError(false);
+      };
+      img.onerror = (e) => {
+        console.error('Image load error:', e);
+        setImageError(true);
+      };
+      img.src = customization.background.imageUrl;
+    } else {
+      setImageError(false);
+    }
+  }, [customization.background.imageUrl, customization.background.type]);
 
   // Handle customization changes
   const handleChange = <T extends keyof NonNullable<GameData['visual_customization']>>(
@@ -438,16 +489,23 @@ export default function GameCustomization({
             )}
 
             {customization.background.type === 'image' && (
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Image URL</label>
+              <div className="mt-3">
+                <label className="block text-sm font-medium mb-1">Image URL</label>
                 <input
                   type="text"
-                  className="w-full bg-gray-700 text-white rounded px-2 py-1 text-xs border border-gray-600"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${imageError ? 'border-red-500' : 'border-gray-700'} rounded text-sm`}
+                  placeholder="https://example.com/image.jpg"
                   value={customization.background.imageUrl || ''}
                   onChange={(e) => handleChange('background', 'imageUrl', e.target.value)}
-                  placeholder="https://example.com/image.jpg"
                 />
-                <p className="text-xs text-gray-400 mt-1">Enter a URL to an image (HTTPS required)</p>
+                {imageError && (
+                  <div className="mt-1 text-red-500 text-xs">
+                    Image URL is invalid or the image cannot be loaded. Make sure the URL is correct and the image supports CORS.
+                  </div>
+                )}
+                <div className="mt-1 text-xs text-gray-400">
+                  Use HTTPS URLs for images that support cross-origin sharing (CORS).
+                </div>
               </div>
             )}
           </div>
@@ -620,6 +678,7 @@ export default function GameCustomization({
         <button
           className="py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
           onClick={onComplete}
+          disabled={customization.background.type === 'image' && imageError}
         >
           Create Game
         </button>

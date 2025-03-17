@@ -105,6 +105,44 @@ export default function FileUpload() {
     setLoading(true);
     setError(null);
     try {
+      // Validate image URL if using image background
+      if (visualCustomization?.background.type === 'image') {
+        try {
+          // Check if imageUrl exists
+          if (!visualCustomization.background.imageUrl || visualCustomization.background.imageUrl.trim() === '') {
+            console.warn('Image URL is empty, falling back to color background');
+            // Create a modified copy with color background instead
+            visualCustomization.background = {
+              type: 'color',
+              color: '#1a1a2e'
+            };
+          } else {
+            // Validate URL format
+            const url = new URL(visualCustomization.background.imageUrl);
+            if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+              console.warn('Image URL must use HTTPS or HTTP protocol, falling back to color background');
+              // Create a modified copy with color background instead
+              visualCustomization.background = {
+                type: 'color',
+                color: '#1a1a2e'
+              };
+            } else {
+              // Additional check to see if image can load (optional, can cause delays)
+              console.log('Testing image loading for:', visualCustomization.background.imageUrl);
+            }
+          }
+        } catch (error) {
+          console.warn('Invalid image URL, falling back to color background:', error);
+          // Create a modified copy with color background instead
+          if (visualCustomization) {
+            visualCustomization.background = {
+              type: 'color',
+              color: '#1a1a2e'
+            };
+          }
+        }
+      }
+      
       const mp3Url = await uploadFile(mp3File, 'MP3');
       
       const arrayBuffer = await midiBlob.arrayBuffer();
@@ -124,7 +162,21 @@ export default function FileUpload() {
       router.push(`/game?id=${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate game');
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('image')) {
+          setError(`Image background error: ${error.message}`);
+        } else if (error.message.includes('413')) {
+          setError('File too large. Please use a smaller MP3 file.');
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          setError('Network error. Please check your internet connection and try again.');
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError('Failed to generate game. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
