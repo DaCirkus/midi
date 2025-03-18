@@ -15,6 +15,9 @@ const audioUnlocked = {
   value: false
 };
 
+// Add a variable to track if we need to resync game when audio starts
+let needsResync = false;
+
 // Audio unlock helper function - can be called from anywhere
 const unlockAudio = async (audio: HTMLAudioElement, audioContext: AudioContext) => {
   if (audioUnlocked.value) return true;
@@ -719,131 +722,19 @@ export default function RhythmGame({
     ctx.restore();
   }, [customization]);
 
-  // Game loop function
-  const gameLoop = useCallback((timestamp: number) => {
-    if (!canvasRef.current) return;
-
-    // Only start the game timer if we're playing and not in countdown
-    if (isPlaying && countdown === null) {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
-      }
-      const elapsed = timestamp - startTimeRef.current;
-      const currentTime = elapsed / 1000;
-      currentTimeRef.current = currentTime;
-    }
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d')!;
-    const speed = 300;
-    const hitZoneOffset = canvas.height * 0.75;
+  // Add a helper function to synchronize game with audio
+  const syncGameWithAudio = useCallback(() => {
+    if (!audioRef.current) return;
     
-    // Call the draw function to handle background and clearing
-    draw();
+    console.log('Syncing game with audio at time:', audioRef.current.currentTime);
     
-    // Define lane positions for note rendering
-    // This order must match the directions array in midiToDirection
-    const lanePositions: Record<Direction, number> = {
-      'LEFT': canvas.width * 0.3,
-      'UP': canvas.width * 0.45,
-      'DOWN': canvas.width * 0.6,
-      'RIGHT': canvas.width * 0.75
-    };
+    // Reset the game start time to match the current audio time
+    startTimeRef.current = audioRef.current.currentTime;
+    currentTimeRef.current = audioRef.current.currentTime;
     
-    // Only update and draw notes if we're playing and not in countdown
-    if (isPlaying && countdown === null) {
-      // Update and draw notes
-      notesRef.current = notesRef.current.filter(note => note.y < canvas.height + 100);
-      
-      notesRef.current.forEach(note => {
-        note.y = (note.time - currentTimeRef.current) * -speed + hitZoneOffset;
-        const x = lanePositions[note.direction];
-        
-        if (note.y > -50 && note.y < canvas.height + 50) {
-          // Add glow to notes based on customization
-          if (customization.notes.glow) {
-            ctx.shadowBlur = 5 * customization.notes.size;
-            ctx.shadowColor = customization.notes.colors[note.direction] || '#ffffff';
-          }
-          drawArrow(ctx, x, note.y, note.direction);
-          ctx.shadowBlur = 0;
-        }
-      });
-    }
-
-    // Always continue the animation
-    animationRef.current = window.requestAnimationFrame(gameLoop);
-  }, [isPlaying, drawArrow, customization, score, countdown]);
-
-  // Initialize audio - completely rewrite this function
-  useEffect(() => {
-    if (!mp3Url) return;
-    
-    // Create the audio element
-    const audio = new Audio(mp3Url);
-    audio.volume = volume;
-    audio.preload = 'auto'; // Ensure audio is preloaded
-    audioRef.current = audio;
-    
-    // Create audio context
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioContextRef.current = audioContext;
-
-    // Set up universal unlock mechanism that will try to unlock audio on any user interaction
-    const universalUnlock = async () => {
-      if (audioRef.current && audioContextRef.current && !audioUnlocked.value) {
-        console.log('Universal unlock attempt');
-        await unlockAudio(audioRef.current, audioContextRef.current);
-      }
-    };
-
-    // Add event listeners to unlock audio on ANY user interaction
-    const interactionEvents = ['touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
-    interactionEvents.forEach(event => {
-      document.addEventListener(event, universalUnlock, { once: false });
-    });
-
-    // Specific handling for Chrome mobile
-    if (isChromeOnMobile) {
-      console.log('Chrome mobile detected, setting up enhanced audio handling');
-      
-      // Pre-load audio by loading a small chunk
-      audio.addEventListener('canplaythrough', () => {
-        console.log('Audio can play through');
-      });
-      
-      // Load enough of the audio to be ready but not the entire file
-      audio.load();
-    }
-
-    return () => {
-      // Clean up
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-      
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      
-      // Remove event listeners
-      interactionEvents.forEach(event => {
-        document.removeEventListener(event, universalUnlock);
-      });
-    };
-  }, [mp3Url, volume]);
-
-  // Start the game loop immediately
-  useEffect(() => {
-    animationRef.current = window.requestAnimationFrame(gameLoop);
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
-    };
-  }, [gameLoop]);
+    // Flag that we've synced
+    needsResync = false;
+  }, []);
 
   // Completely rewrite handleStart to ensure direct user gesture connection
   const handleStart = useCallback(async (event?: React.MouseEvent | React.TouchEvent) => {
@@ -851,6 +742,9 @@ export default function RhythmGame({
     
     try {
       console.log('Start button clicked, direct user gesture available');
+      
+      // Set the flag that we'll need to sync when audio actually starts
+      needsResync = true;
       
       // IMPORTANT: Always try to unlock audio within the direct user gesture handler
       if (event && isChromeOnMobile) {
@@ -870,7 +764,10 @@ export default function RhythmGame({
             
             // Start the game when countdown reaches 0
             setIsPlaying(true);
+            
+            // Reset timing references
             startTimeRef.current = 0;
+            currentTimeRef.current = 0;
             
             // Play audio with special handling for Chrome mobile
             if (audioRef.current) {
@@ -880,6 +777,9 @@ export default function RhythmGame({
               if (playPromise !== undefined) {
                 playPromise.then(() => {
                   console.log('Audio started playing successfully after countdown');
+                  
+                  // Sync game timing with audio
+                  syncGameWithAudio();
                 }).catch(error => {
                   console.error('Failed to play audio after countdown:', error);
                   
@@ -897,7 +797,7 @@ export default function RhythmGame({
     } catch (error) {
       console.error('Error starting game:', error);
     }
-  }, []);
+  }, [syncGameWithAudio]);
 
   // Add a fallback button for Chrome mobile if audio fails
   const createAudioFallbackButton = () => {
@@ -924,7 +824,7 @@ export default function RhythmGame({
     button.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.3)';
     
     // Add a sound icon
-    button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z M13.5,4.71c0.18-0.13,0.41-0.17,0.61-0.13 c0.51,0.11,0.99,0.39,1.35,0.82c0.11,0.13,0.15,0.27,0.13,0.42c-0.04,0.2-0.21,0.48-0.65,0.75c-0.71,0.42-1.35,0.96-1.85,1.6 c-0.78,0.85-1.15,1.95-1.15,3.09c0.01,1.12,0.44,2.19,1.28,3 c0,0,0.26,0.22,0.26,0.22c0.31,0.29,0.48,0.67,0.5,1.08 c0.05,1.5-0.16,3.22-1.63,4.1l0,0l0,0l0.47,0.27c1.06-0.71,1.3-2.14,1.3-3.32c0.76,0.74,0.78,1.89,0.63,2.77 c0.33-0.04,0.41-0.3,0.42-0.68c0.07-1.33-0.63-2.58-1.86-3.42c-0.28-0.2-0.45-0.5-0.5-0.83c-0.04-0.29-0.01-0.57,0.1-0.86 c0.21-0.57,0.63-1.04,1.16-1.33c1.05-0.61,1.71-1.69,1.71-2.88c0-0.71-0.22-1.39-0.65-1.96c-0.12-0.16-0.25-0.31-0.39-0.44l0,0 C14.16,6.92,13.9,6.73,13.66,6.56c-0.4-0.29-0.76-0.62-1.08-0.99c-0.3-0.35-0.39-0.81-0.28-1.23C12.49,4.01,12.82,3.82,13.5,4.71z M8,5.5C8,6.33,8.67,7,9.5,7S11,6.33,11,5.5S10.33,4,9.5,4S8,4.67,8,5.5z M9.75,15c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,13.84,9,14.25C9,14.66,9.34,15,9.75,15z M9.75,11c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,9.84,9,10.25C9,10.66,9.34,11,9.75,11z M6.75,9C6.34,9,6,9.34,6,9.75s0.34,0.75,0.75,0.75 S7.5,10.16,7.5,9.75S7.16,9,6.75,9z M16.75,14.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C16,14.16,16.34,14.5,16.75,14.5z M13.75,16.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C13,16.16,13.34,16.5,13.75,16.5z M7.5,14.5c0,0.41-0.34,0.75-0.75,0.75S6,14.91,6,14.5s0.34-0.75,0.75-0.75S7.5,14.09,7.5,14.5z M16.75,8.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75C16,8.16,16.34,8.5,16.75,8.5z"></path></svg>Tap for Sound`;
+    button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z"></path></svg>Tap for Sound`;
     
     // Add pulsing animation to draw attention
     const pulseAnimation = () => {
@@ -973,10 +873,16 @@ export default function RhythmGame({
           await audioContextRef.current.resume();
         }
         
+        // Make sure we're going to sync when audio plays
+        needsResync = true;
+        
         // Now try to play the audio
         console.log('Fallback button: Attempting to play audio');
         await audioRef.current.play();
         console.log('Fallback button: Audio playback successful');
+        
+        // Sync game with audio now that it's playing
+        syncGameWithAudio();
         
         // Remove the button after successful play
         button.remove();
@@ -1001,6 +907,9 @@ export default function RhythmGame({
           }
           audioRef.current = newAudio;
           
+          // Sync game with the new audio
+          syncGameWithAudio();
+          
           // Remove the button after successful play
           button.remove();
         } catch (emergencyErr) {
@@ -1012,7 +921,7 @@ export default function RhythmGame({
             button.style.transform = 'scale(1)';
             
             // Show a message to the user
-            button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z M13.5,4.71c0.18-0.13,0.41-0.17,0.61-0.13 c0.51,0.11,0.99,0.39,1.35,0.82c0.11,0.13,0.15,0.27,0.13,0.42c-0.04,0.2-0.21,0.48-0.65,0.75c-0.71,0.42-1.35,0.96-1.85,1.6 c-0.78,0.85-1.15,1.95-1.15,3.09c0.01,1.12,0.44,2.19,1.28,3 c0,0,0.26,0.22,0.26,0.22c0.31,0.29,0.48,0.67,0.5,1.08 c0.05,1.5-0.16,3.22-1.63,4.1l0,0l0,0l0.47,0.27c1.06-0.71,1.3-2.14,1.3-3.32c0.76,0.74,0.78,1.89,0.63,2.77 c0.33-0.04,0.41-0.3,0.42-0.68c0.07-1.33-0.63-2.58-1.86-3.42c-0.28-0.2-0.45-0.5-0.5-0.83c-0.04-0.29-0.01-0.57,0.1-0.86 c0.21-0.57,0.63-1.04,1.16-1.33c1.05-0.61,1.71-1.69,1.71-2.88c0-0.71-0.22-1.39-0.65-1.96c-0.12-0.16-0.25-0.31-0.39-0.44l0,0 C14.16,6.92,13.9,6.73,13.66,6.56c-0.4-0.29-0.76-0.62-1.08-0.99c-0.3-0.35-0.39-0.81-0.28-1.23C12.49,4.01,12.82,3.82,13.5,4.71z M8,5.5C8,6.33,8.67,7,9.5,7S11,6.33,11,5.5S10.33,4,9.5,4S8,4.67,8,5.5z M9.75,15c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,13.84,9,14.25C9,14.66,9.34,15,9.75,15z M9.75,11c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,9.84,9,10.25C9,10.66,9.34,11,9.75,11z M6.75,9C6.34,9,6,9.34,6,9.75s0.34,0.75,0.75,0.75 S7.5,10.16,7.5,9.75S7.16,9,6.75,9z M16.75,14.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C16,14.16,16.34,14.5,16.75,14.5z M13.75,16.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C13,16.16,13.34,16.5,13.75,16.5z M7.5,14.5c0,0.41-0.34,0.75-0.75,0.75S6,14.91,6,14.5s0.34-0.75,0.75-0.75S7.5,14.09,7.5,14.5z M16.75,8.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75C16,8.16,16.34,8.5,16.75,8.5z"></path></svg>Try again for Sound`;
+            button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z"></path></svg>Try again for Sound`;
           }, 300);
         }
       }
@@ -1027,6 +936,37 @@ export default function RhythmGame({
       console.log('Fallback audio button created and added to DOM');
     }
   };
+
+  // Add an event listener for when audio actually starts playing
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const handleAudioPlay = () => {
+      console.log('Audio play event detected');
+      if (needsResync) {
+        syncGameWithAudio();
+      }
+    };
+    
+    const handleAudioTimeUpdate = () => {
+      // Only sync on the first few time updates to ensure we're in sync from the start
+      if (audioRef.current && needsResync && audioRef.current.currentTime < 0.5) {
+        syncGameWithAudio();
+      }
+    };
+    
+    // Add event listeners
+    audioRef.current.addEventListener('play', handleAudioPlay);
+    audioRef.current.addEventListener('timeupdate', handleAudioTimeUpdate);
+    
+    return () => {
+      // Clean up event listeners
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('play', handleAudioPlay);
+        audioRef.current.removeEventListener('timeupdate', handleAudioTimeUpdate);
+      }
+    };
+  }, [syncGameWithAudio]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -1730,6 +1670,238 @@ export default function RhythmGame({
       }
     }
   }, [score, customization, notesRef, hitEffectsRef, currentTimeRef]);
+
+  // Modify the game loop to use accurate timing relative to audio
+  const gameLoop = useCallback((timestamp: number) => {
+    if (!canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Update current time based on audio time if available
+    if (isPlaying && audioRef.current && !audioRef.current.paused) {
+      // Use the audio's current time for better synchronization
+      currentTimeRef.current = audioRef.current.currentTime;
+    } else if (isPlaying && countdown === null) {
+      // Fallback if audio isn't playing yet
+      currentTimeRef.current = (timestamp - startTimeRef.current) / 1000;
+    }
+    
+    // Define draw function to set up the canvas
+    const draw = () => {
+      // Background and lane setup
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Define lane positions for note rendering
+      // This order must match the directions array in midiToDirection
+      const lanePositions: Record<Direction, number> = {
+        'LEFT': canvas.width * 0.3,
+        'UP': canvas.width * 0.45,
+        'DOWN': canvas.width * 0.6,
+        'RIGHT': canvas.width * 0.75
+      };
+      
+      // Draw lanes
+      const hitZoneOffset = canvas.height * 0.75;
+      Object.entries(lanePositions).forEach(([dir, x]) => {
+        const direction = dir as Direction;
+        
+        // Draw lane line
+        ctx.lineWidth = 1 * customization.lanes.width;
+        ctx.strokeStyle = customization.lanes.color;
+        ctx.globalAlpha = 0.3;
+        
+        if (customization.lanes.glow) {
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = customization.lanes.color;
+        }
+        
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        
+        // Draw hit zone markers
+        ctx.fillStyle = customization.lanes.color;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(x, hitZoneOffset, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      
+      // Draw hit effects
+      const now = currentTimeRef.current;
+      hitEffectsRef.current = hitEffectsRef.current.filter(effect => {
+        const elapsed = now - effect.startTime;
+        if (elapsed > customization.hitEffects.duration) return false;
+        
+        const x = lanePositions[effect.direction];
+        const progress = elapsed / customization.hitEffects.duration;
+        
+        if (effect.isMiss) {
+          // Miss effect
+          if (customization.missEffects.style === 'shake') {
+            const shakeX = Math.sin(progress * Math.PI * 10) * 5 * (1 - progress);
+            
+            ctx.fillStyle = customization.missEffects.color;
+            ctx.globalAlpha = 0.7 * (1 - progress);
+            ctx.beginPath();
+            ctx.arc(x + shakeX, hitZoneOffset, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        } else {
+          // Hit effect
+          if (customization.hitEffects.style === 'explosion') {
+            const size = 20 + 40 * progress * customization.hitEffects.size;
+            
+            ctx.fillStyle = customization.hitEffects.color;
+            ctx.globalAlpha = 0.7 * (1 - progress);
+            ctx.beginPath();
+            ctx.arc(x, hitZoneOffset, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+          
+          // Draw text effect for hit quality
+          if (effect.text) {
+            ctx.font = `bold ${16 + 8 * (1-progress)}px ${customization.ui.fontFamily}`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = effect.text === 'PERFECT!' ? '#00ff88' : 
+                            effect.text === 'GOOD!' ? '#ffff00' : '#ff0000';
+            ctx.globalAlpha = 1 - progress;
+            ctx.fillText(effect.text, x, hitZoneOffset - 30 - 20 * progress);
+            ctx.globalAlpha = 1;
+          }
+        }
+        
+        return true;
+      });
+    };
+    
+    // Call the draw function
+    draw();
+    
+    // Only update and draw notes if we're playing and not in countdown
+    if (isPlaying && countdown === null) {
+      const speed = 300; // Pixels per second speed
+      const hitZoneOffset = canvas.height * 0.75;
+      
+      // Define lane positions for note rendering
+      const lanePositions: Record<Direction, number> = {
+        'LEFT': canvas.width * 0.3,
+        'UP': canvas.width * 0.45,
+        'DOWN': canvas.width * 0.6,
+        'RIGHT': canvas.width * 0.75
+      };
+      
+      // Update and draw notes
+      notesRef.current = notesRef.current.filter(note => {
+        // Calculate y position based on time
+        note.y = (note.time - currentTimeRef.current) * -speed + hitZoneOffset;
+        
+        // Remove notes that are far off-screen
+        if (note.y > canvas.height + 100) return false;
+        
+        // Only draw notes that are visible
+        if (note.y > -50 && note.y < canvas.height + 50) {
+          const x = lanePositions[note.direction];
+          
+          // Add glow to notes based on customization
+          if (customization.notes.glow) {
+            ctx.shadowBlur = 5 * customization.notes.size;
+            ctx.shadowColor = customization.notes.colors[note.direction] || '#ffffff';
+          }
+          
+          drawArrow(ctx, x, note.y, note.direction);
+          ctx.shadowBlur = 0;
+        }
+        
+        return true;
+      });
+    }
+
+    // Always continue the animation
+    animationRef.current = window.requestAnimationFrame(gameLoop);
+  }, [isPlaying, drawArrow, customization, score, countdown, syncGameWithAudio]);
+
+  // Initialize audio - completely rewrite this function
+  useEffect(() => {
+    if (!mp3Url) return;
+    
+    // Create the audio element
+    const audio = new Audio(mp3Url);
+    audio.volume = volume;
+    audio.preload = 'auto'; // Ensure audio is preloaded
+    audioRef.current = audio;
+    
+    // Create audio context
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContextRef.current = audioContext;
+
+    // Set up universal unlock mechanism that will try to unlock audio on any user interaction
+    const universalUnlock = async () => {
+      if (audioRef.current && audioContextRef.current && !audioUnlocked.value) {
+        console.log('Universal unlock attempt');
+        await unlockAudio(audioRef.current, audioContextRef.current);
+      }
+    };
+
+    // Add event listeners to unlock audio on ANY user interaction
+    const interactionEvents = ['touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
+    interactionEvents.forEach(event => {
+      document.addEventListener(event, universalUnlock, { once: false });
+    });
+
+    // Specific handling for Chrome mobile
+    if (isChromeOnMobile) {
+      console.log('Chrome mobile detected, setting up enhanced audio handling');
+      
+      // Pre-load audio by loading a small chunk
+      audio.addEventListener('canplaythrough', () => {
+        console.log('Audio can play through');
+      });
+      
+      // Load enough of the audio to be ready but not the entire file
+      audio.load();
+    }
+
+    return () => {
+      // Clean up
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      
+      // Remove event listeners
+      interactionEvents.forEach(event => {
+        document.removeEventListener(event, universalUnlock);
+      });
+    };
+  }, [mp3Url, volume]);
+
+  // Start the game loop immediately
+  useEffect(() => {
+    animationRef.current = window.requestAnimationFrame(gameLoop);
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [gameLoop]);
 
   return (
     <div className={`relative w-full aspect-video overflow-hidden rounded-2xl ${
