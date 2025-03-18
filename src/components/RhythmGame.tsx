@@ -737,49 +737,21 @@ export default function RhythmGame({
   useEffect(() => {
     if (!mp3Url) return;
     
-    // Create a suspended audio context first (this is important for Chrome)
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-      latencyHint: 'interactive',
-    });
-    audioContextRef.current = audioContext;
-    
     const audio = new Audio(mp3Url);
     audio.volume = volume;
-    
-    // Set additional attributes to help with mobile browsers
-    audio.preload = 'auto';
-    audio.setAttribute('playsinline', ''); // Important for iOS
-    audio.setAttribute('webkit-playsinline', ''); // For older iOS versions
-    
-    // Add event listeners to help diagnose issues
-    audio.addEventListener('canplay', () => {
-      console.log('Audio can play');
-    });
-    
-    audio.addEventListener('play', () => {
-      console.log('Audio play event');
-    });
-    
-    audio.addEventListener('error', (e) => {
-      console.error('Audio error:', e);
-    });
-    
     audioRef.current = audio;
     
-    // Attempt to load the audio
-    audio.load();
-    
+    // Create audio context
+    const audioContext = new AudioContext();
+    audioContextRef.current = audioContext;
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
-        // Remove event listeners
-        audioRef.current.removeEventListener('canplay', () => {});
-        audioRef.current.removeEventListener('play', () => {});
-        audioRef.current.removeEventListener('error', () => {});
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(e => console.error('Error closing audio context:', e));
+        audioContextRef.current.close();
       }
     };
   }, [mp3Url, volume]);
@@ -795,54 +767,13 @@ export default function RhythmGame({
     };
   }, [gameLoop]);
 
-  // Handle audio autoplay restrictions in mobile browsers
-  const ensureAudioPlayback = async (audioElement: HTMLAudioElement) => {
-    try {
-      // First make sure audioContext is running
-      if (audioContextRef.current?.state === 'suspended') {
-        await audioContextRef.current.resume();
-        console.log('AudioContext resumed successfully');
-      }
-      
-      // Chrome mobile requires a user gesture to play audio
-      // This approach uses a promise and tries to play multiple times if needed
-      const playPromise = audioElement.play();
-      
-      if (playPromise !== undefined) {
-        await playPromise;
-        console.log('Audio is playing successfully');
-      }
-    } catch (error) {
-      console.error('Error playing audio (will retry once more):', error);
-      
-      // One more attempt with a small delay
-      // This often works in Chrome mobile after a user interaction
-      setTimeout(async () => {
-        try {
-          await audioElement.play();
-          console.log('Audio started on second attempt');
-        } catch (secondError) {
-          console.error('Failed to play audio on second attempt:', secondError);
-          
-          // Show a message to the user about the audio issue
-          setRenderError('Audio playback blocked. Tap the screen and try again.');
-        }
-      }, 300);
-    }
-  };
-
   // Remove the game loop start from handleStart
   const handleStart = useCallback(async () => {
     if (!audioRef.current || !audioContextRef.current) return;
     
     try {
-      // Clear any previous error messages
-      setRenderError(null);
-      
-      // Resume audio context - this is necessary for Chrome
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
+      // Resume audio context
+      await audioContextRef.current.resume();
       
       // Start the countdown from 3 instead of 5
       setCountdown(3);
@@ -856,21 +787,19 @@ export default function RhythmGame({
             // Start the game when countdown reaches 0
             setIsPlaying(true);
             startTimeRef.current = 0;
-            
-            if (audioRef.current) {
-              audioRef.current.currentTime = 0;
-              // Use our enhanced audio playback function
-              ensureAudioPlayback(audioRef.current);
-            }
+            audioRef.current!.currentTime = 0;
+            audioRef.current!.play().catch(error => {
+              console.error('Failed to play audio:', error);
+            });
             
             return null;
           }
           return prev - 1;
         });
       }, 1000);
+      
     } catch (error) {
-      console.error('Game start error:', error);
-      setRenderError('Error starting game. Please try again.');
+      console.error('Failed to start game:', error);
     }
   }, []);
 
@@ -958,24 +887,6 @@ export default function RhythmGame({
       handleInput(direction);
     }
   }, [isPlaying, handleInput, getLaneFromX, countdown]);
-
-  // Handle touch controls for mobile devices
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isPlaying || countdown !== null) return;
-    
-    // Use the existing handleCanvasClick for touch start events
-    handleCanvasClick(e as any);
-  }, [isPlaying, countdown, handleCanvasClick]);
-  
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // You can implement touch move handling here if needed
-    // This is a placeholder to fix the linter error
-  }, []);
-  
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    // You can implement touch end handling here if needed
-    // This is a placeholder to fix the linter error
-  }, []);
 
   // Draw function with customization support
   const draw = useCallback(() => {
@@ -1597,147 +1508,127 @@ export default function RhythmGame({
 
   return (
     <div className={`relative w-full aspect-video overflow-hidden rounded-2xl ${
-      customization.background.type === 'image' ? 'bg-cover bg-center' : ''
+      customization.background.type === 'image' ? 'bg-cover bg-center' : 'bg-black/30'
     }`}>
-      {/* Audio element */}
-      {mp3Url && <audio ref={audioRef} src={mp3Url} preload="auto" playsInline />}
-      
-      {/* User interaction trap for mobile browsers with strict autoplay policies */}
-      {renderError && (
-        <div 
-          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => {
-            // Try to resume audio context and play audio again
-            if (audioContextRef.current && audioRef.current) {
-              audioContextRef.current.resume().then(() => {
-                if (audioRef.current) {
-                  audioRef.current.play()
-                    .then(() => {
-                      // Success - remove error message
-                      setRenderError(null);
-                    })
-                    .catch(e => {
-                      console.error('Still cannot play audio after user interaction:', e);
-                    });
-                }
-              });
-            }
-          }}
-        >
-          <div className="p-6 rounded-xl bg-white/10 border border-white/20 text-center max-w-md mx-auto">
-            <p className="text-lg font-bold mb-2">🔊 Audio Blocked</p>
-            <p className="mb-4">Chrome requires user interaction to play audio.</p>
-            <button className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded transition-colors">
-              Tap to Enable Audio
+      {renderError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
+          <div className="bg-red-900/30 border border-red-900 rounded-lg p-4 max-w-md text-center">
+            <h3 className="text-xl font-bold text-red-400 mb-2">Rendering Error</h3>
+            <p className="text-white/80">{renderError}</p>
+            <button 
+              className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
             </button>
           </div>
         </div>
-      )}
+      ) : (
+        <>
+          {/* Game Canvas */}
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full"
+            onClick={handleCanvasClick}
+            onTouchStart={handleCanvasClick}
+          />
+          
+          {/* Score Overlay - Always visible, shows countdown or score */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+            <div className={`bg-black/60 backdrop-blur-md px-6 py-3 rounded-xl
+              text-center shadow-lg border border-white/10 transition-all duration-300
+              ${countdown === 1 ? 'scale-105' : ''}`}>
+              <div className={`text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark 
+                bg-clip-text text-transparent transition-all duration-300
+                ${countdown === 1 ? 'scale-110 opacity-90' : ''}`}>
+                {countdown !== null ? `Starting in: ${countdown}` : isPlaying ? `Score: ${score}` : 'Ready?'}
+              </div>
+              
+              {/* Progress bar for countdown */}
+              {countdown !== null && (
+                <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden mt-2">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary to-primary-dark transition-all duration-200 ease-linear"
+                    style={{ width: `${(1 - countdown / 3) * 100}%` }}
+                  ></div>
+                </div>
+              )}
+              
+              {/* Visual indicators for 3-second countdown */}
+              {countdown !== null && (
+                <div className="flex justify-between mt-1 px-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`w-1.5 h-1.5 rounded-full ${i < 3 - countdown ? 'bg-primary' : 'bg-gray-600'}`}
+                    ></div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Game canvas */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full bg-transparent"
-        onClick={handleCanvasClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      />
-      
-      {/* Score Overlay - Always visible, shows countdown or score */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
-        <div className={`bg-black/60 backdrop-blur-md px-6 py-3 rounded-xl
-          text-center shadow-lg border border-white/10 transition-all duration-300
-          ${countdown === 1 ? 'scale-105' : ''}`}>
-          <div className={`text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark 
-            bg-clip-text text-transparent transition-all duration-300
-            ${countdown === 1 ? 'scale-110 opacity-90' : ''}`}>
-            {countdown !== null ? `Starting in: ${countdown}` : isPlaying ? `Score: ${score}` : 'Ready?'}
-          </div>
-          
-          {/* Progress bar for countdown */}
-          {countdown !== null && (
-            <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden mt-2">
-              <div 
-                className="h-full bg-gradient-to-r from-primary to-primary-dark transition-all duration-200 ease-linear"
-                style={{ width: `${(1 - countdown / 3) * 100}%` }}
-              ></div>
+          {/* Volume Control */}
+          {isPlaying && (
+            <div className="absolute top-4 right-4">
+              <div className="bg-black/60 backdrop-blur-md p-2 rounded-xl
+                flex items-center gap-2 border border-white/10">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="w-24 h-1 accent-primary"
+                />
+                <span className="text-lg opacity-80">🔊</span>
+              </div>
             </div>
           )}
-          
-          {/* Visual indicators for 3-second countdown */}
-          {countdown !== null && (
-            <div className="flex justify-between mt-1 px-1">
-              {[...Array(3)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`w-1.5 h-1.5 rounded-full ${i < 3 - countdown ? 'bg-primary' : 'bg-gray-600'}`}
-                ></div>
-              ))}
+
+          {/* Start Button */}
+          {!isPlaying && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm 
+              flex flex-col items-center justify-center gap-4">
+              <button
+                onClick={handleStart}
+                className="px-8 py-4 bg-gradient-to-r from-primary to-primary-dark 
+                  text-white rounded-xl text-2xl font-bold 
+                  hover:from-primary-dark hover:to-primary transition-all duration-300
+                  shadow-lg hover:shadow-primary/20 hover:scale-105 transform"
+              >
+                Start Game
+              </button>
+              <h2 className="text-3xl font-bold text-white">
+                Ready to Play?
+              </h2>
+              <p className="text-white/70 text-lg">
+                ←↑↓→ or WASD or tap
+              </p>
             </div>
           )}
-        </div>
-      </div>
-      
-      {/* Volume Control */}
-      {isPlaying && (
-        <div className="absolute top-4 right-4">
-          <div className="bg-black/60 backdrop-blur-md p-2 rounded-xl
-            flex items-center gap-2 border border-white/10">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-24 h-1 accent-primary"
-            />
-            <span className="text-lg opacity-80">🔊</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Start Button */}
-      {!isPlaying && countdown === null && (
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm 
-          flex flex-col items-center justify-center gap-4">
-         <button
-            onClick={handleStart}
-            className="px-8 py-4 bg-gradient-to-r from-primary to-primary-dark 
-              text-white rounded-xl text-2xl font-bold 
-              hover:from-primary-dark hover:to-primary transition-all duration-300
-              shadow-lg hover:shadow-primary/20 hover:scale-105 transform"
-         >
-            Start Game
-          </button>
-          <h2 className="text-3xl font-bold text-white">
-            Ready to Play?
-          </h2>
-          <p className="text-white/70 text-lg">
-            ←↑↓→ or WASD or tap
-          </p>
-        </div>
-      )}
-      
-      {/* Countdown Display */}
-      {countdown !== null && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-          <div className="flex flex-col items-center z-20">
-            <div className="text-9xl font-bold text-white drop-shadow-glow animate-bounce" 
-                 style={{ 
-                   textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6), 0 0 40px rgba(255, 255, 255, 0.4)',
-                   transform: `scale(${1 + (countdown % 1) * 0.3})`,
-                   transition: 'transform 0.1s ease-out'
-                 }}>
-              {countdown}
+
+          {/* Countdown Display */}
+          {countdown !== null && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+              <div className="flex flex-col items-center z-20">
+                <div className="text-9xl font-bold text-white drop-shadow-glow animate-bounce" 
+                     style={{ 
+                       textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6), 0 0 40px rgba(255, 255, 255, 0.4)',
+                       transform: `scale(${1 + (countdown % 1) * 0.3})`,
+                       transition: 'transform 0.1s ease-out'
+                     }}>
+                  {countdown}
+                </div>
+                <div className="text-2xl font-bold text-white mt-4 bg-black bg-opacity-50 px-6 py-2 rounded-full">
+                  Get Ready!
+                </div>
+              </div>
             </div>
-            <div className="text-2xl font-bold text-white mt-4 bg-black bg-opacity-50 px-6 py-2 rounded-full">
-              Get Ready!
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
