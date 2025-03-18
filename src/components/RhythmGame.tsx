@@ -739,11 +739,26 @@ export default function RhythmGame({
   useEffect(() => {
     if (!mp3Url) return;
     
-    // Create audio element but don't auto-load it
+    // Create audio element with specific attributes for mobile browsers
     const audio = new Audio();
     audio.volume = volume;
     audio.preload = 'auto'; // Set to auto to start loading
+    
+    // Add these attributes to help with mobile playback
+    audio.setAttribute('playsinline', ''); // Important for iOS
+    audio.setAttribute('webkit-playsinline', ''); // For older iOS
+    audio.muted = false; // Explicitly set unmuted
+    
+    // Set a low initial volume to help with autoplay policies
+    const lowVolume = 0.1;
+    audio.volume = lowVolume;
+    
     audioRef.current = audio;
+    
+    // Detailed logging
+    audio.addEventListener('loadstart', () => console.log('Audio loadstart event'));
+    audio.addEventListener('loadedmetadata', () => console.log('Audio loadedmetadata event'));
+    audio.addEventListener('loadeddata', () => console.log('Audio loadeddata event'));
     
     // Set up load event for logging
     audio.addEventListener('canplaythrough', () => {
@@ -751,25 +766,56 @@ export default function RhythmGame({
       audioReadyRef.current = true;
     });
     
+    // Log playing state changes
+    audio.addEventListener('playing', () => console.log('Audio playing event'));
+    audio.addEventListener('pause', () => console.log('Audio pause event'));
+    
     // Add error handling
     audio.addEventListener('error', (e) => {
       console.error('Audio loading error:', e);
+      const errorCodes = ['MEDIA_ERR_ABORTED', 'MEDIA_ERR_NETWORK', 'MEDIA_ERR_DECODE', 'MEDIA_ERR_SRC_NOT_SUPPORTED'];
+      if (audio.error) {
+        console.error('Audio error code:', errorCodes[audio.error.code] || audio.error.code);
+        console.error('Audio error message:', audio.error.message);
+      }
     });
     
-    // Only set the src after event listeners are added
+    // Set source after all event listeners are added
     audio.src = mp3Url;
     
-    // Create audio context
-    // Do not create this on component mount, we'll create it on user interaction
+    // Start loading
+    try {
+      audio.load();
+    } catch (error) {
+      console.error('Error loading audio:', error);
+    }
     
+    // Cleanup function
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioReadyRef.current = false;
+        try {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+          audioReadyRef.current = false;
+          
+          // Remove event listeners
+          audio.removeEventListener('canplaythrough', () => {});
+          audio.removeEventListener('error', () => {});
+          audio.removeEventListener('loadstart', () => {});
+          audio.removeEventListener('loadedmetadata', () => {});
+          audio.removeEventListener('loadeddata', () => {});
+          audio.removeEventListener('playing', () => {});
+          audio.removeEventListener('pause', () => {});
+        } catch (e) {
+          console.error('Error cleaning up audio:', e);
+        }
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        try {
+          audioContextRef.current.close();
+        } catch (e) {
+          console.error('Error closing audio context:', e);
+        }
       }
     };
   }, [mp3Url, volume]);
@@ -785,62 +831,98 @@ export default function RhythmGame({
     };
   }, [gameLoop]);
 
-  // Detect if browser is Chrome on mobile
+  // Detect if browser is Chrome on mobile more accurately
   const isChromeOnMobile = useRef(
     typeof navigator !== 'undefined' && 
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
-    /Chrome/i.test(navigator.userAgent)
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
+     /Chrome/i.test(navigator.userAgent) && 
+     !/Safari/i.test(navigator.userAgent)) ||
+    (/CriOS/i.test(navigator.userAgent)) // Chrome on iOS
   );
 
-  // Remove the game loop start from handleStart
-  const handleStart = useCallback(async () => {
-    // Important: Audio context must be created or resumed in the user gesture handler
-    // for Chrome's autoplay policy
+  // Use a flag to track if we've tried to unlock audio
+  const audioUnlockAttempted = useRef(false);
+  
+  // Create a function to unlock audio that must be called in a user gesture
+  const unlockAudio = useCallback(() => {
+    console.log('Attempting to unlock audio...');
+    if (!audioRef.current) return false;
+    
+    // Create AudioContext if it doesn't exist
     if (!audioContextRef.current) {
       try {
-        console.log('Creating new AudioContext from user gesture');
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         audioContextRef.current = new AudioContext();
+        console.log('Created new AudioContext:', audioContextRef.current.state);
       } catch (error) {
         console.error('Failed to create AudioContext:', error);
       }
-    } else if (audioContextRef.current.state === 'suspended') {
+    }
+    
+    // Directly resume the AudioContext in the gesture handler
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
       try {
-        console.log('Resuming AudioContext from user gesture');
-        await audioContextRef.current.resume();
+        audioContextRef.current.resume();
+        console.log('Resumed AudioContext:', audioContextRef.current.state);
       } catch (error) {
         console.error('Failed to resume AudioContext:', error);
       }
     }
     
-    // For Chrome mobile, try to play audio immediately from user gesture
-    // even if we pause it right away
-    if (isChromeOnMobile.current && audioRef.current) {
+    // Create a buffer for silent sound
+    if (audioContextRef.current) {
       try {
-        console.log('Initiating audio playback for Chrome mobile');
-        // Start and immediately pause to register user gesture
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              // Successfully started playback
-              console.log('Successfully initiated audio playback');
-              audioRef.current?.pause();
-              // Now we can mark audio as initialized
-              setAudioInitialized(true);
-            })
-            .catch(error => {
-              console.error('Failed to play audio:', error);
-            });
-        }
+        const buffer = audioContextRef.current.createBuffer(1, 1, 22050);
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContextRef.current.destination);
+        source.start(0);
+        console.log('Played silent sound');
       } catch (error) {
-        console.error('Error during initial audio interaction:', error);
+        console.error('Failed to play silent sound:', error);
       }
-    } else {
-      // For other browsers, just mark as initialized
-      setAudioInitialized(true);
     }
     
-    // Start the countdown from 3 instead of 5
+    // Try to interact with the audio element directly
+    try {
+      audioRef.current.volume = volume;
+      // For Chrome, we need to play and immediately pause to register the interaction
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Audio play succeeded in unlock');
+            // Immediately pause the audio to prepare for actual playback later
+            audioRef.current?.pause();
+            return true;
+          })
+          .catch((error) => {
+            console.error('Audio play failed in unlock:', error);
+            return false;
+          });
+      }
+    } catch (error) {
+      console.error('Error during audio unlock:', error);
+      return false;
+    }
+    
+    return true;
+  }, [volume]);
+
+  // Handle start button click - start the game and music
+  const handleStart = useCallback(async () => {
+    console.log('Start button clicked, browser:', 
+      isChromeOnMobile.current ? 'Chrome Mobile' : 'Other Browser');
+    
+    // Always try to unlock audio on any user gesture
+    const unlocked = unlockAudio();
+    audioUnlockAttempted.current = true;
+    
+    // Always set audio as initialized - we'll show a backup button if needed
+    setAudioInitialized(true);
+    
+    // Start the countdown from 3
     setCountdown(3);
     
     // Create a countdown timer
@@ -855,23 +937,41 @@ export default function RhythmGame({
           
           // Play audio when countdown ends
           if (audioRef.current) {
+            // Reset to start of track
             audioRef.current.currentTime = 0;
             
-            console.log('Attempting to play audio after countdown');
-            console.log('Audio context state:', audioContextRef.current?.state);
+            // Set desired volume before play attempt
+            audioRef.current.volume = volume;
             
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                console.error('Failed to play audio after countdown:', error);
-                
-                // If we fail to play after countdown on Chrome mobile,
-                // show a manual play button
-                if (isChromeOnMobile.current) {
-                  console.log('Showing manual play button for Chrome mobile');
-                  setAudioInitialized(false);
-                }
-              });
+            console.log('Attempting to play audio after countdown');
+            if (audioContextRef.current) {
+              console.log('Audio context state:', audioContextRef.current.state);
+            }
+            
+            // Try to play with better error handling
+            try {
+              const playPromise = audioRef.current.play();
+              
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    console.log('Audio play succeeded after countdown');
+                    
+                    // Make sure volume is set correctly after successful play
+                    if (audioRef.current) {
+                      audioRef.current.volume = volume;
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Failed to play audio after countdown:', error);
+                    
+                    // Show manual play button
+                    setAudioInitialized(false);
+                  });
+              }
+            } catch (error) {
+              console.error('Error attempting to play audio:', error);
+              setAudioInitialized(false);
             }
           }
           
@@ -881,7 +981,83 @@ export default function RhythmGame({
       });
     }, 1000);
     
+  }, [unlockAudio, volume]);
+
+  // Mute function for when audio fails to play
+  const toggleMute = useCallback(() => {
+    if (!audioRef.current) return;
+    
+    if (audioRef.current.muted) {
+      // Unmute
+      audioRef.current.muted = false;
+      setVolume(prevVolume => prevVolume > 0 ? prevVolume : 0.7);
+    } else {
+      // Mute
+      audioRef.current.muted = true;
+      setVolume(0);
+    }
   }, []);
+
+  // Add a manual play button for Chrome when needed
+  const handleManualPlay = useCallback(() => {
+    if (!audioRef.current) return;
+    
+    // Try again to unlock audio
+    unlockAudio();
+    
+    // Explicitly set volume just before play attempt
+    audioRef.current.volume = volume;
+    audioRef.current.muted = false;
+    
+    // Reset to start of track if it's been playing
+    if (isPlaying) {
+      // If the game is already playing, we want to sync from the current time
+      // Don't reset currentTime to avoid desyncing with the notes
+    } else {
+      // Otherwise start from the beginning
+      audioRef.current.currentTime = 0;
+    }
+    
+    // Try to play audio with better error handling
+    try {
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Manual play succeeded');
+            
+            // Ensure volume is set correctly
+            if (audioRef.current) {
+              audioRef.current.volume = volume;
+            }
+            
+            setAudioInitialized(true);
+          })
+          .catch(error => {
+            console.error('Failed to play audio manually:', error);
+            
+            // Offer a mute option if all else fails
+            if (confirm('Audio playback is blocked by your browser. Continue without music?')) {
+              if (audioRef.current) {
+                audioRef.current.muted = true;
+              }
+              setAudioInitialized(true);
+            }
+          });
+      }
+    } catch (error) {
+      console.error('Error in manual play attempt:', error);
+      
+      // Last resort fallback
+      if (confirm('Audio playback error. Continue without music?')) {
+        if (audioRef.current) {
+          audioRef.current.muted = true;
+        }
+        setAudioInitialized(true);
+      }
+    }
+  }, [unlockAudio, volume, isPlaying]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -1586,34 +1762,6 @@ export default function RhythmGame({
     }
   }, [score, customization, notesRef, hitEffectsRef, currentTimeRef]);
 
-  // Add a manual play button for Chrome when needed
-  const handleManualPlay = useCallback(() => {
-    if (!audioRef.current) return;
-    
-    // Create audio context if needed
-    if (!audioContextRef.current) {
-      try {
-        audioContextRef.current = new AudioContext();
-      } catch (error) {
-        console.error('Failed to create AudioContext:', error);
-      }
-    } else if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume().catch(error => {
-        console.error('Failed to resume AudioContext:', error);
-      });
-    }
-    
-    // Try to play audio
-    const playPromise = audioRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        setAudioInitialized(true);
-      }).catch(error => {
-        console.error('Failed to play audio manually:', error);
-      });
-    }
-  }, []);
-
   return (
     <div className={`relative w-full aspect-video overflow-hidden rounded-2xl ${
       customization.background.type === 'image' ? 'bg-cover bg-center' : 'bg-black/30'
@@ -1738,19 +1886,27 @@ export default function RhythmGame({
           )}
 
           {/* Manual Play Button for Chrome */}
-          {!audioInitialized && isPlaying && isChromeOnMobile.current && (
+          {!audioInitialized && isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
               <div className="bg-gray-800 p-6 rounded-lg text-center max-w-xs">
                 <h3 className="text-lg font-medium mb-4">Enable Audio</h3>
                 <p className="text-sm text-gray-300 mb-4">
                   Tap the button below to enable game audio
                 </p>
-                <button
-                  onClick={handleManualPlay}
-                  className="px-4 py-2 bg-primary rounded font-medium"
-                >
-                  Play Audio
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleManualPlay}
+                    className="px-4 py-2 bg-primary rounded font-medium"
+                  >
+                    Play Audio
+                  </button>
+                  <button
+                    onClick={toggleMute}
+                    className="px-4 py-2 bg-gray-700 rounded font-medium text-sm"
+                  >
+                    Continue Without Music
+                  </button>
+                </div>
               </div>
             </div>
           )}
