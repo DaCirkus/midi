@@ -10,6 +10,42 @@ const isChromeOnMobile = typeof navigator !== 'undefined' &&
   /Chrome/i.test(navigator.userAgent) && 
   !/Edge|EdgiOS|EdgA/i.test(navigator.userAgent);
 
+// Create a global variable to track if audio has been unlocked
+const audioUnlocked = {
+  value: false
+};
+
+// Audio unlock helper function - can be called from anywhere
+const unlockAudio = async (audio: HTMLAudioElement, audioContext: AudioContext) => {
+  if (audioUnlocked.value) return true;
+  
+  try {
+    // Play a short silent audio to unlock audio
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tAxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
+    silentAudio.volume = 0.01;
+    await silentAudio.play();
+    
+    // Resume audio context
+    await audioContext.resume();
+    
+    // Now try to play the actual audio briefly and then pause it
+    await audio.play();
+    
+    // We've successfully played audio, so mark as unlocked
+    console.log("Audio successfully unlocked!");
+    audioUnlocked.value = true;
+    
+    // Pause and reset playback position
+    audio.pause();
+    audio.currentTime = 0;
+    
+    return true;
+  } catch (error) {
+    console.error("Failed to unlock audio:", error);
+    return false;
+  }
+};
+
 const ARROW_KEYS = {
   37: 'LEFT',  // Left Arrow
   38: 'UP',    // Up Arrow
@@ -739,60 +775,62 @@ export default function RhythmGame({
     animationRef.current = window.requestAnimationFrame(gameLoop);
   }, [isPlaying, drawArrow, customization, score, countdown]);
 
-  // Initialize audio
+  // Initialize audio - completely rewrite this function
   useEffect(() => {
     if (!mp3Url) return;
     
+    // Create the audio element
     const audio = new Audio(mp3Url);
     audio.volume = volume;
+    audio.preload = 'auto'; // Ensure audio is preloaded
     audioRef.current = audio;
     
     // Create audio context
-    const audioContext = new AudioContext();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = audioContext;
 
-    // If we're on Chrome mobile, we need to "unlock" audio immediately
+    // Set up universal unlock mechanism that will try to unlock audio on any user interaction
+    const universalUnlock = async () => {
+      if (audioRef.current && audioContextRef.current && !audioUnlocked.value) {
+        console.log('Universal unlock attempt');
+        await unlockAudio(audioRef.current, audioContextRef.current);
+      }
+    };
+
+    // Add event listeners to unlock audio on ANY user interaction
+    const interactionEvents = ['touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
+    interactionEvents.forEach(event => {
+      document.addEventListener(event, universalUnlock, { once: false });
+    });
+
+    // Specific handling for Chrome mobile
     if (isChromeOnMobile) {
-      console.log('Chrome mobile detected, unlocking audio...');
+      console.log('Chrome mobile detected, setting up enhanced audio handling');
       
-      // This ensures audio can be played later
-      const unlockAudio = () => {
-        // Resume the audio context
-        audioContext.resume().then(() => {
-          console.log('AudioContext resumed successfully');
-        }).catch(err => {
-          console.error('Failed to resume AudioContext:', err);
-        });
-
-        // Play and immediately pause to unlock audio
-        audio.play().then(() => {
-          console.log('Audio unlocked successfully');
-          audio.pause();
-          audio.currentTime = 0;
-        }).catch(err => {
-          console.error('Failed to unlock audio:', err);
-        });
-
-        // Remove event listeners once unlocked
-        document.removeEventListener('touchstart', unlockAudio);
-        document.removeEventListener('touchend', unlockAudio);
-        document.removeEventListener('click', unlockAudio);
-      };
-
-      // Add event listeners to unlock audio on user interaction
-      document.addEventListener('touchstart', unlockAudio);
-      document.addEventListener('touchend', unlockAudio);
-      document.addEventListener('click', unlockAudio);
+      // Pre-load audio by loading a small chunk
+      audio.addEventListener('canplaythrough', () => {
+        console.log('Audio can play through');
+      });
+      
+      // Load enough of the audio to be ready but not the entire file
+      audio.load();
     }
 
     return () => {
+      // Clean up
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
+      
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      
+      // Remove event listeners
+      interactionEvents.forEach(event => {
+        document.removeEventListener(event, universalUnlock);
+      });
     };
   }, [mp3Url, volume]);
 
@@ -807,29 +845,21 @@ export default function RhythmGame({
     };
   }, [gameLoop]);
 
-  // Remove the game loop start from handleStart
-  const handleStart = useCallback(async () => {
+  // Completely rewrite handleStart to ensure direct user gesture connection
+  const handleStart = useCallback(async (event?: React.MouseEvent | React.TouchEvent) => {
     if (!audioRef.current || !audioContextRef.current) return;
     
     try {
-      // Resume audio context
-      await audioContextRef.current.resume();
+      console.log('Start button clicked, direct user gesture available');
       
-      // For Chrome on mobile, make sure we have a valid user gesture
-      if (isChromeOnMobile) {
-        console.log('Ensuring audio is unlocked for Chrome mobile...');
-        // Try to play audio briefly to ensure it's unlocked
-        try {
-          await audioRef.current.play();
-          // Immediately pause it - we'll play it properly after countdown
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        } catch (error) {
-          console.warn('Could not pre-unlock audio:', error);
-        }
+      // IMPORTANT: Always try to unlock audio within the direct user gesture handler
+      if (event && isChromeOnMobile) {
+        console.log('Direct user gesture - attempting to unlock audio');
+        const wasUnlocked = await unlockAudio(audioRef.current, audioContextRef.current);
+        console.log('Audio unlock attempt result:', wasUnlocked ? 'SUCCESS' : 'FAILED');
       }
       
-      // Start the countdown from 3 instead of 5
+      // Start the countdown from 3
       setCountdown(3);
       
       // Create a countdown timer
@@ -848,13 +878,13 @@ export default function RhythmGame({
               
               const playPromise = audioRef.current.play();
               if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                  console.error('Failed to play audio:', error);
+                playPromise.then(() => {
+                  console.log('Audio started playing successfully after countdown');
+                }).catch(error => {
+                  console.error('Failed to play audio after countdown:', error);
                   
-                  // If we're on Chrome mobile and still can't play, add a fallback button
-                  if (isChromeOnMobile) {
-                    createAudioFallbackButton();
-                  }
+                  // If we're still having issues, show the fallback button
+                  createAudioFallbackButton();
                 });
               }
             }
@@ -896,34 +926,95 @@ export default function RhythmGame({
     // Add a sound icon
     button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z M13.5,4.71c0.18-0.13,0.41-0.17,0.61-0.13 c0.51,0.11,0.99,0.39,1.35,0.82c0.11,0.13,0.15,0.27,0.13,0.42c-0.04,0.2-0.21,0.48-0.65,0.75c-0.71,0.42-1.35,0.96-1.85,1.6 c-0.78,0.85-1.15,1.95-1.15,3.09c0.01,1.12,0.44,2.19,1.28,3 c0,0,0.26,0.22,0.26,0.22c0.31,0.29,0.48,0.67,0.5,1.08 c0.05,1.5-0.16,3.22-1.63,4.1l0,0l0,0l0.47,0.27c1.06-0.71,1.3-2.14,1.3-3.32c0.76,0.74,0.78,1.89,0.63,2.77 c0.33-0.04,0.41-0.3,0.42-0.68c0.07-1.33-0.63-2.58-1.86-3.42c-0.28-0.2-0.45-0.5-0.5-0.83c-0.04-0.29-0.01-0.57,0.1-0.86 c0.21-0.57,0.63-1.04,1.16-1.33c1.05-0.61,1.71-1.69,1.71-2.88c0-0.71-0.22-1.39-0.65-1.96c-0.12-0.16-0.25-0.31-0.39-0.44l0,0 C14.16,6.92,13.9,6.73,13.66,6.56c-0.4-0.29-0.76-0.62-1.08-0.99c-0.3-0.35-0.39-0.81-0.28-1.23C12.49,4.01,12.82,3.82,13.5,4.71z M8,5.5C8,6.33,8.67,7,9.5,7S11,6.33,11,5.5S10.33,4,9.5,4S8,4.67,8,5.5z M9.75,15c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,13.84,9,14.25C9,14.66,9.34,15,9.75,15z M9.75,11c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,9.84,9,10.25C9,10.66,9.34,11,9.75,11z M6.75,9C6.34,9,6,9.34,6,9.75s0.34,0.75,0.75,0.75 S7.5,10.16,7.5,9.75S7.16,9,6.75,9z M16.75,14.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C16,14.16,16.34,14.5,16.75,14.5z M13.75,16.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C13,16.16,13.34,16.5,13.75,16.5z M7.5,14.5c0,0.41-0.34,0.75-0.75,0.75S6,14.91,6,14.5s0.34-0.75,0.75-0.75S7.5,14.09,7.5,14.5z M16.75,8.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75C16,8.16,16.34,8.5,16.75,8.5z"></path></svg>Tap for Sound`;
     
+    // Add pulsing animation to draw attention
+    const pulseAnimation = () => {
+      let scale = 1;
+      let growing = true;
+      const animateButton = () => {
+        if (growing) {
+          scale += 0.003;
+          if (scale >= 1.1) growing = false;
+        } else {
+          scale -= 0.003;
+          if (scale <= 1) growing = true;
+        }
+        button.style.transform = `scale(${scale})`;
+        if (document.getElementById('audio-fallback-button')) {
+          requestAnimationFrame(animateButton);
+        }
+      };
+      requestAnimationFrame(animateButton);
+    };
+    
+    // Start the pulsing animation
+    pulseAnimation();
+    
     // Add hover effect
     button.onmouseover = () => {
       button.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-      button.style.transform = 'scale(1.05)';
     };
     
     button.onmouseout = () => {
       button.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-      button.style.transform = 'scale(1)';
     };
     
-    button.onclick = () => {
-      if (audioRef.current) {
-        // Visual feedback for the tap
-        button.style.backgroundColor = 'rgba(0, 128, 255, 0.5)';
-        button.style.transform = 'scale(0.95)';
+    // Handle the click with special care for Chrome
+    button.onclick = async (e) => {
+      if (!audioRef.current) return;
+      
+      // Visual feedback for the tap
+      button.style.backgroundColor = 'rgba(0, 128, 255, 0.5)';
+      button.style.transform = 'scale(0.95)';
+      
+      try {
+        // First ensure the audio context is resumed with the direct user gesture
+        if (audioContextRef.current) {
+          console.log('Fallback button: Resuming AudioContext');
+          await audioContextRef.current.resume();
+        }
         
-        audioRef.current.play().then(() => {
+        // Now try to play the audio
+        console.log('Fallback button: Attempting to play audio');
+        await audioRef.current.play();
+        console.log('Fallback button: Audio playback successful');
+        
+        // Remove the button after successful play
+        button.remove();
+      } catch (err) {
+        console.error('Fallback button: Still failed to play audio:', err);
+        
+        // Special handling for the ultra hard case - create a completely new audio element
+        try {
+          console.log('Fallback button: Trying emergency audio creation');
+          
+          // Create a brand new audio element
+          const newAudio = new Audio(mp3Url);
+          newAudio.volume = volume;
+          
+          // Try to play it immediately with the user gesture
+          await newAudio.play();
+          console.log('Fallback button: Emergency audio playback successful');
+          
+          // Replace the existing audio reference
+          if (audioRef.current) {
+            audioRef.current.pause();
+          }
+          audioRef.current = newAudio;
+          
           // Remove the button after successful play
           button.remove();
-        }).catch(err => {
-          console.error('Still failed to play audio:', err);
-          // Reset the button style if play fails
+        } catch (emergencyErr) {
+          console.error('Fallback button: Emergency play failed:', emergencyErr);
+          
+          // Reset the button style if all attempts fail
           setTimeout(() => {
             button.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
             button.style.transform = 'scale(1)';
+            
+            // Show a message to the user
+            button.innerHTML = `<svg style="display: inline-block; vertical-align: middle; margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="white"><path d="M14.5,3.27L14.5,3.27c-1.3,0.44-2.74,0.44-4.04,0l0,0C9.65,2.94,8.75,3.15,8.01,3.69L7.5,4l0,0C6.91,4.36,6.48,4.92,6.25,5.58 C6.11,6.05,5.87,6.49,5.5,6.79c-0.39,0.33-0.71,0.73-0.95,1.17C4.26,8.5,4.12,9.2,4.25,9.88c0.07,0.35,0.1,0.71,0.08,1.06l0,0.13 c-0.01,0.44,0.05,0.88,0.2,1.28c0.32,0.83,0.2,1.75-0.32,2.49c-0.53,0.76-0.64,1.74-0.27,2.61c0.14,0.33,0.34,0.66,0.58,0.96 c0.06,0.07,0.12,0.15,0.17,0.22c0.38,0.57,0.87,1.08,1.44,1.46c0.47,0.32,0.82,0.77,1.04,1.29l0,0l0,0c0.39,0.93,1.2,1.62,2.2,1.78 c0.41,0.07,0.81,0.08,1.22,0.06l0,0c0.09-0.01,0.18-0.01,0.28-0.01c0.44,0,0.86,0.08,1.27,0.25l0,0c0.83,0.33,1.78,0.22,2.54-0.26 l0.15-0.1c0.73-0.5,1.16-1.31,1.22-2.17c0.04-0.65,0.31-1.25,0.77-1.72c0.5-0.5,0.5-1,0.5-1h0.01c0-0.32-0.14-0.63-0.36-0.86 c-0.3-0.3-0.38-0.77-0.36-1.21c0.03-0.83-0.28-1.66-0.94-2.22c-0.51-0.44-0.79-1.06-0.8-1.71V9.92v0 c-0.01-0.65,0.22-1.28,0.67-1.77c0.42-0.47,0.91-0.87,1.45-1.19c0.67-0.4,1.14-1.05,1.31-1.82c0.13-0.63,0.02-1.27-0.31-1.83 c-0.5-0.83-1.27-1.45-2.19-1.75C15.57,3.29,15.03,3.22,14.5,3.27z M13.5,4.71c0.18-0.13,0.41-0.17,0.61-0.13 c0.51,0.11,0.99,0.39,1.35,0.82c0.11,0.13,0.15,0.27,0.13,0.42c-0.04,0.2-0.21,0.48-0.65,0.75c-0.71,0.42-1.35,0.96-1.85,1.6 c-0.78,0.85-1.15,1.95-1.15,3.09c0.01,1.12,0.44,2.19,1.28,3 c0,0,0.26,0.22,0.26,0.22c0.31,0.29,0.48,0.67,0.5,1.08 c0.05,1.5-0.16,3.22-1.63,4.1l0,0l0,0l0.47,0.27c1.06-0.71,1.3-2.14,1.3-3.32c0.76,0.74,0.78,1.89,0.63,2.77 c0.33-0.04,0.41-0.3,0.42-0.68c0.07-1.33-0.63-2.58-1.86-3.42c-0.28-0.2-0.45-0.5-0.5-0.83c-0.04-0.29-0.01-0.57,0.1-0.86 c0.21-0.57,0.63-1.04,1.16-1.33c1.05-0.61,1.71-1.69,1.71-2.88c0-0.71-0.22-1.39-0.65-1.96c-0.12-0.16-0.25-0.31-0.39-0.44l0,0 C14.16,6.92,13.9,6.73,13.66,6.56c-0.4-0.29-0.76-0.62-1.08-0.99c-0.3-0.35-0.39-0.81-0.28-1.23C12.49,4.01,12.82,3.82,13.5,4.71z M8,5.5C8,6.33,8.67,7,9.5,7S11,6.33,11,5.5S10.33,4,9.5,4S8,4.67,8,5.5z M9.75,15c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,13.84,9,14.25C9,14.66,9.34,15,9.75,15z M9.75,11c0.41,0,0.75-0.34,0.75-0.75 c0-0.41-0.34-0.75-0.75-0.75S9,9.84,9,10.25C9,10.66,9.34,11,9.75,11z M6.75,9C6.34,9,6,9.34,6,9.75s0.34,0.75,0.75,0.75 S7.5,10.16,7.5,9.75S7.16,9,6.75,9z M16.75,14.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C16,14.16,16.34,14.5,16.75,14.5z M13.75,16.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75 C13,16.16,13.34,16.5,13.75,16.5z M7.5,14.5c0,0.41-0.34,0.75-0.75,0.75S6,14.91,6,14.5s0.34-0.75,0.75-0.75S7.5,14.09,7.5,14.5z M16.75,8.5c0.41,0,0.75-0.34,0.75-0.75c0-0.41-0.34-0.75-0.75-0.75s-0.75,0.34-0.75,0.75C16,8.16,16.34,8.5,16.75,8.5z"></path></svg>Try again for Sound`;
           }, 300);
-        });
+        }
       }
     };
     
@@ -931,6 +1022,9 @@ export default function RhythmGame({
     const container = canvasRef.current?.parentElement;
     if (container) {
       container.appendChild(button);
+      
+      // Make this button more noticeable
+      console.log('Fallback audio button created and added to DOM');
     }
   };
 
@@ -1718,38 +1812,12 @@ export default function RhythmGame({
             </div>
           )}
 
-          {/* Start Button */}
+          {/* Start Button - Update the onClick handler */}
           {!isPlaying && countdown === null && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm 
               flex flex-col items-center justify-center gap-4">
               <button 
-                onClick={async (e) => {
-                  // For Chrome mobile, ensure audio is unlocked with the direct user gesture
-                  if (isChromeOnMobile && audioRef.current && audioContextRef.current) {
-                    // Add explicit logging
-                    console.log('Handling Start button click on Chrome mobile');
-                    
-                    try {
-                      // Resume audio context directly within the click handler
-                      await audioContextRef.current.resume();
-                      console.log('AudioContext resumed in click handler');
-                      
-                      // Try to play audio directly in the click handler
-                      await audioRef.current.play();
-                      console.log('Audio played successfully in click handler');
-                      
-                      // Immediately pause it - we'll play it properly after countdown
-                      audioRef.current.pause();
-                      audioRef.current.currentTime = 0;
-                      console.log('Audio paused and reset');
-                    } catch (error) {
-                      console.warn('Audio preplay failed:', error);
-                    }
-                  }
-                  
-                  // Call the regular start handler
-                  handleStart();
-                }}
+                onClick={(e) => handleStart(e)}
                 className="px-8 py-4 bg-gradient-to-r from-primary to-primary-dark 
                   text-white rounded-xl text-2xl font-bold 
                   hover:from-primary-dark hover:to-primary transition-all duration-300
