@@ -159,7 +159,7 @@ export default function FileUpload() {
       };
       
       const game = await createGame(mp3Url, midiData, visualCustomization || undefined);
-      router.push(`/game?id=${game.id}`);
+      router.push(`/game/${game.id}`);
     } catch (error) {
       console.error('Failed to generate game:', error);
       
